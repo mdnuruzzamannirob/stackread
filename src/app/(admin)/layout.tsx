@@ -1,3 +1,4 @@
+import { RouteAccessGate } from '@/components/auth/RouteAccessGate'
 import { AdminLayout } from '@/components/layouts/AdminLayout'
 
 type AdminRouteLayoutProps = {
@@ -5,5 +6,14 @@ type AdminRouteLayoutProps = {
 }
 
 export default function AdminRouteLayout({ children }: AdminRouteLayoutProps) {
-  return <AdminLayout>{children}</AdminLayout>
+  return (
+    <AdminLayout>
+      <RouteAccessGate
+        requireActor="staff"
+        allowPaths={['/admin/login', '/admin/2fa']}
+      >
+        {children}
+      </RouteAccessGate>
+    </AdminLayout>
+  )
 }

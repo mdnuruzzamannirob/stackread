@@ -8,6 +8,7 @@ type OnboardingStatus = 'unknown' | 'required' | 'completed'
 export type AuthState = {
   actorType: ActorType
   accessToken: string | null
+  pendingTwoFactorToken: string | null
   currentActor: IUser | IStaff | null
   roles: string[]
   permissionMap: Record<string, boolean>
@@ -18,6 +19,7 @@ export type AuthState = {
 const initialState: AuthState = {
   actorType: null,
   accessToken: null,
+  pendingTwoFactorToken: null,
   currentActor: null,
   roles: [],
   permissionMap: {},
@@ -34,6 +36,9 @@ const authSlice = createSlice({
     },
     setAccessToken(state, action: PayloadAction<string | null>) {
       state.accessToken = action.payload
+    },
+    setPendingTwoFactorToken(state, action: PayloadAction<string | null>) {
+      state.pendingTwoFactorToken = action.payload
     },
     setCurrentActor(state, action: PayloadAction<IUser | IStaff | null>) {
       state.currentActor = action.payload
@@ -59,6 +64,7 @@ const authSlice = createSlice({
 export const {
   setActorType,
   setAccessToken,
+  setPendingTwoFactorToken,
   setCurrentActor,
   setRoles,
   setPermissionMap,

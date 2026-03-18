@@ -10,6 +10,52 @@ function getRecordKey(actorType: 'user' | 'staff') {
   return actorType === 'user' ? 'stackread_user_token' : 'stackread_staff_token'
 }
 
+function getCookieKey(actorType: 'user' | 'staff') {
+  return actorType === 'user'
+    ? 'stackread_user_access_token'
+    : 'stackread_staff_access_token'
+}
+
+function decodeJwtExpiry(token: string): number | null {
+  try {
+    const parts = token.split('.')
+
+    if (parts.length < 2) {
+      return null
+    }
+
+    const payload = JSON.parse(atob(parts[1])) as { exp?: number }
+
+    if (!payload.exp || typeof payload.exp !== 'number') {
+      return null
+    }
+
+    return payload.exp * 1000
+  } catch {
+    return null
+  }
+}
+
+function setAuthCookie(
+  actorType: 'user' | 'staff',
+  token: string,
+  expiresAt: number,
+) {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  document.cookie = `${getCookieKey(actorType)}=${encodeURIComponent(token)}; path=/; expires=${new Date(expiresAt).toUTCString()}; SameSite=Lax`
+}
+
+function clearAuthCookie(actorType: 'user' | 'staff') {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  document.cookie = `${getCookieKey(actorType)}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+}
+
 function parseStoredRecord(value: string | null): TokenRecord | null {
   if (!value) {
     return null
@@ -49,9 +95,11 @@ function persistRecord(
 export function setAccessToken(
   actorType: 'user' | 'staff',
   token: string,
-  expiresAt: number,
+  expiresAt?: number,
 ) {
-  const record = { token, expiresAt }
+  const computedExpiry =
+    expiresAt ?? decodeJwtExpiry(token) ?? Date.now() + 24 * 60 * 60 * 1000
+  const record = { token, expiresAt: computedExpiry }
 
   if (actorType === 'user') {
     userTokenRecord = record
@@ -60,6 +108,7 @@ export function setAccessToken(
   }
 
   persistRecord(actorType, record)
+  setAuthCookie(actorType, token, computedExpiry)
 }
 
 export function getAccessToken(actorType: 'user' | 'staff') {
@@ -130,6 +179,7 @@ export function clearAccessToken(actorType: 'user' | 'staff') {
   }
 
   persistRecord(actorType, null)
+  clearAuthCookie(actorType)
 }
 
 export function clearAllAccessTokens() {

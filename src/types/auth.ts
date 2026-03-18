@@ -4,25 +4,32 @@ export interface IUser {
   id: string
   email: string
   name: string
-  avatarUrl?: string
+  countryCode?: string
+  provider?: 'local' | 'google' | 'facebook'
   role?: string
   permissions?: string[]
-  isEmailVerified?: boolean
+  isEmailVerified: boolean
   isOnboardingCompleted?: boolean
-  createdAt?: string
-  updatedAt?: string
+  notificationPreferences?: {
+    email: boolean
+    push: boolean
+  }
+  lastLoginAt?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface IStaff {
   id: string
   email: string
   name: string
-  avatarUrl?: string
   role: string
   permissions: string[]
-  twoFactorEnabled?: boolean
-  createdAt?: string
-  updatedAt?: string
+  twoFactorEnabled: boolean
+  isSuperAdmin?: boolean
+  isActive?: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface UserJwtPayload {

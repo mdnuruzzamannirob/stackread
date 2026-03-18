@@ -1,5 +1,6 @@
 'use client'
 
+import { AuthHydrator } from '@/components/providers/AuthHydrator'
 import { ReduxProvider } from '@/components/providers/ReduxProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 
@@ -10,7 +11,10 @@ type ProvidersProps = {
 export function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider>
-      <ReduxProvider>{children}</ReduxProvider>
+      <ReduxProvider>
+        <AuthHydrator />
+        {children}
+      </ReduxProvider>
     </ThemeProvider>
   )
 }

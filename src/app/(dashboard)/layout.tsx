@@ -1,3 +1,4 @@
+import { RouteAccessGate } from '@/components/auth/RouteAccessGate'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 
 type DashboardRouteLayoutProps = {
@@ -7,5 +8,9 @@ type DashboardRouteLayoutProps = {
 export default function DashboardRouteLayout({
   children,
 }: DashboardRouteLayoutProps) {
-  return <DashboardLayout>{children}</DashboardLayout>
+  return (
+    <DashboardLayout>
+      <RouteAccessGate requireActor="user">{children}</RouteAccessGate>
+    </DashboardLayout>
+  )
 }

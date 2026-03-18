@@ -1,3 +1,4 @@
+import { RouteAccessGate } from '@/components/auth/RouteAccessGate'
 import { AuthLayout } from '@/components/layouts/AuthLayout'
 
 type AuthRouteLayoutProps = {
@@ -5,5 +6,9 @@ type AuthRouteLayoutProps = {
 }
 
 export default function AuthRouteLayout({ children }: AuthRouteLayoutProps) {
-  return <AuthLayout>{children}</AuthLayout>
+  return (
+    <AuthLayout>
+      <RouteAccessGate guestOnly>{children}</RouteAccessGate>
+    </AuthLayout>
+  )
 }
