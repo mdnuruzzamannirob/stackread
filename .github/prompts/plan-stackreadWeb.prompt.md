@@ -56,7 +56,7 @@ Build stackread.com as a production-grade Next.js 16 App Router application for 
 ## Backend Truth Constraints
 
 - Use country from GET /auth/me for payment gateway UX selection
-- Gracefully handle no refresh-token endpoint
+- Use POST /auth/refresh for session renewal handling
 - Gracefully handle no Firebase device-token endpoint
 - SMS flows disabled in frontend UX despite legacy documentation references
 
@@ -92,10 +92,10 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 4. Route: /[locale]/books/[id]
 
-- Description: Book metadata, reviews, CTA for read/borrow/reserve/wishlist
+- Description: Book metadata, reviews, CTA for read/review/wishlist
 - Access: Public
 - Render: Server page + client review/wishlist actions when authenticated
-- APIs: GET /books/:id, GET /books/:bookId/reviews, POST /wishlist/:bookId, POST /borrows, POST /reservations
+- APIs: GET /books/:id, GET /books/:bookId/reviews, POST /books/:bookId/reviews, POST /wishlist/:bookId
 - Key components: BookHeader, BookMetaPanel, ReviewList, ActionCTAGroup
 
 5. Route: /[locale]/authors
@@ -259,7 +259,7 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 - Access: Public
 - Render: Client token form
-- APIs: POST /auth/reset-password
+- APIs: POST /auth/forgot-password, POST /auth/resend-reset-otp, POST /auth/verify-reset-otp, POST /auth/reset-password
 - Components: ResetPasswordForm
 
 26. Route: /[locale]/auth/oauth-callback
@@ -273,8 +273,14 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 - Access: Temp-auth only
 - Render: Client OTP form
-- APIs: POST /auth/2fa/challenge
+- APIs: POST /auth/2fa/challenge, POST /auth/2fa/email/send
 - Components: TwoFactorChallengeForm
+
+### Auth API Endpoints (Non-Page, for User Account)
+
+- GET /auth/me/login-history (user's login history)
+- POST /auth/logout
+- POST /auth/refresh (session renewal)
 
 ### User Dashboard Pages
 
@@ -289,8 +295,8 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 - Access: User
 - Render: Server + client tab switch
-- APIs: GET /dashboard/library, GET /borrows/my, GET /reservations/my, GET /wishlist, GET /reading/currently-reading
-- Components: LibraryTabs, BorrowList, ReservationList, WishlistGrid
+- APIs: GET /dashboard/library, GET /wishlist, GET /reading/currently-reading, GET /reading/completed
+- Components: LibraryTabs, CurrentlyReadingList, CompletedList, WishlistGrid
 
 30. Route: /[locale]/dashboard/reading-history
 
@@ -341,91 +347,77 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 - APIs: GET /wishlist, DELETE /wishlist/:bookId
 - Components: WishlistGrid, QuickActions
 
-37. Route: /[locale]/dashboard/borrows
-
-- Access: User
-- Render: Server
-- APIs: GET /borrows/my, POST /borrows/:id/return
-- Components: BorrowStatusList
-
-38. Route: /[locale]/dashboard/reservations
-
-- Access: User
-- Render: Server
-- APIs: GET /reservations/my, DELETE /reservations/:id
-- Components: ReservationQueueList
-
-39. Route: /[locale]/dashboard/notifications
+37. Route: /[locale]/dashboard/notifications
 
 - Access: User
 - Render: Client interactions
 - APIs: GET /notifications, PATCH /notifications/:id/read, PATCH /notifications/mark-read
 - Components: NotificationCenterList
 
-40. Route: /[locale]/dashboard/subscription
+38. Route: /[locale]/dashboard/subscription
 
 - Access: User
 - Render: Server
 - APIs: GET /subscriptions/my, GET /subscriptions/my/history, GET /plans
 - Components: CurrentPlanCard, UsagePanel, SubscriptionTimeline
 
-41. Route: /[locale]/dashboard/subscription/history
+39. Route: /[locale]/dashboard/subscription/history
 
 - Access: User
 - Render: Server
 - APIs: GET /subscriptions/my/history
 - Components: SubscriptionHistoryTable
 
-42. Route: /[locale]/dashboard/checkout
+40. Route: /[locale]/dashboard/checkout
 
 - Access: User
 - Render: Client checkout orchestration
 - APIs: GET /auth/me, GET /plans, POST /coupons/validate, POST /payments/initiate, POST /payments/verify
 - Components: CheckoutSummary, GatewaySelectorByCountry, StripeElementsForm, RedirectGatewayActions
 
-43. Route: /[locale]/dashboard/payment/result
+41. Route: /[locale]/dashboard/payment/result
 
 - Access: User
 - Render: Client callback status page
 - APIs: POST /payments/verify, GET /payments/my/:id
 - Components: PaymentResultState
 
-44. Route: /[locale]/dashboard/payments
+42. Route: /[locale]/dashboard/payments
 
 - Access: User
 - Render: Server
 - APIs: GET /payments/my, GET /payments/my/:id
 - Components: PaymentHistoryTable, InvoiceDrawer
 
-45. Route: /[locale]/dashboard/settings/profile
+43. Route: /[locale]/dashboard/settings/profile
 
 - Access: User
 - Render: Client form
 - APIs: GET /auth/me, PATCH /auth/me
 - Components: ProfileSettingsForm
 
-46. Route: /[locale]/dashboard/settings/security
+44. Route: /[locale]/dashboard/settings/security
 
 - Access: User
 - Render: Client form
 - APIs: PATCH /auth/me/password, POST /auth/2fa/enable, POST /auth/2fa/verify, POST /auth/2fa/disable, GET /auth/2fa/backup-codes
 - Components: PasswordChangeForm, TwoFactorToggleCard, BackupCodeInfo
 
-47. Route: /[locale]/dashboard/settings/notifications
+45. Route: /[locale]/dashboard/settings/notifications
 
 - Access: User
 - Render: Client form
 - APIs: PATCH /auth/me/notification-prefs
 - Components: NotificationPreferenceForm
 
-48. Route: /[locale]/onboarding/plan-selection
+46. Route: /[locale]/onboarding/plan-selection
 
 - Access: User
 - Render: Client wizard step
 - APIs: GET /onboarding/plans, POST /onboarding/select
 - Components: OnboardingPlanSelector
 
-49. Route: /[locale]/onboarding/completion
+47. Route: /[locale]/onboarding/completion
 
 - Access: User
 - Render: Client completion state
@@ -434,35 +426,35 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 ### Special Pages
 
-50. Route: /[locale]/not-found
+48. Route: /[locale]/not-found
 
 - Access: Public
 - Render: Server
 - APIs: none
 - Components: NotFoundState
 
-51. Route: /[locale]/error
+49. Route: /[locale]/error
 
 - Access: Public
 - Render: Client error boundary UI
 - APIs: none
 - Components: ErrorStatePanel
 
-52. Route: /[locale]/offline
+50. Route: /[locale]/offline
 
 - Access: Public
 - Render: Client
 - APIs: none
 - Components: OfflineStatePanel
 
-53. Module-level loading skeletons
+51. Module-level loading skeletons
 
 - Access: Contextual
 - Render: Server/client loading files
 - APIs: none
 - Components: Skeleton variants per module
 
-54. Module-level empty states
+52. Module-level empty states
 
 - Access: Contextual
 - Render: Shared UI
@@ -523,8 +515,6 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 - src/store/features/promotions/promotionsApi.ts
 - src/store/features/reading/readingApi.ts
 - src/store/features/wishlist/wishlistApi.ts
-- src/store/features/borrows/borrowsApi.ts
-- src/store/features/reservations/reservationsApi.ts
 - src/store/features/reviews/reviewsApi.ts
 - src/store/features/search/searchApi.ts
 - src/store/features/dashboard/dashboardApi.ts
@@ -540,7 +530,7 @@ UI slice state fields:
 ## RTK Query Strategy
 
 - Single baseApi and feature injection per domain
-- Domain tag types: Auth, Books, Authors, Categories, Plans, Subscriptions, Payments, Promotions, Reading, Wishlist, Borrows, Reservations, Reviews, Notifications, Search, Dashboard
+- Domain tag types: Auth, Books, Authors, Categories, Plans, Subscriptions, Payments, Promotions, Reading, Wishlist, Reviews, Notifications, Search, Dashboard
 - 401 handling in baseQueryWithReauth: clear auth state and hard redirect to /auth/login
 - Avoid RTK Query in server components
 
@@ -610,32 +600,9 @@ UI slice state fields:
 
 ## Endpoint Coverage Index (Backend Implemented)
 
-- Auth: 21 endpoints
-- Authors: 5 endpoints
-- Books: 12 endpoints
-- Borrows: 5 endpoints
-- Categories: 5 endpoints
-- Dashboard: 4 endpoints
-- Health: 3 endpoints
-- Members: 6 endpoints
-- Notifications: 5 endpoints
-- Onboarding: 4 endpoints
-- Payments: 9 endpoints
-- Plans: 5 endpoints
-- Promotions: 13 endpoints
-- RBAC: 6 endpoints
-- Reading: 14 endpoints
-- Reports: 6 endpoints
-- Reservations: 5 endpoints
-- Reviews: 6 endpoints
-- Search: 5 endpoints
-- Settings: 3 endpoints
-- Staff: 9 endpoints
-- Staff Auth: 9 endpoints
-- Subscriptions: 10 endpoints
-- Wishlist: 3 endpoints
-- Webhooks: 1 dynamic endpoint
-- Total mapped backend endpoints: 176
+- OpenAPI paths mapped: 149
+- Postman requests mapped: 183
+- Active backend modules mounted in src/app/routes.ts: 24 (no reservations/borrows modules)
 
 ## Implementation Phases
 
@@ -649,11 +616,11 @@ UI slice state fields:
 
 ### Phase 2: Auth
 
-- Build: login/register/verify/reset/OAuth callback/2FA challenge flow
+- Build: login/register/verify/reset/OAuth callback/2FA challenge/password recovery/session management
 - Pages/components: all auth pages
-- API integrations: /auth/\* and OAuth routes
+- API integrations: POST /auth/register, /auth/login, /auth/verify-email, /auth/resend-verification, /auth/forgot-password, /auth/resend-reset-otp, /auth/verify-reset-otp, /auth/reset-password, /auth/2fa/challenge, /auth/2fa/email/send, /auth/logout, /auth/refresh, GET /auth/me/login-history, OAuth routes
 - Dependencies: react-hook-form, zod, lucide-react
-- Order: login/register -> verify/reset -> OAuth callback -> 2FA challenge -> auth hydration
+- Order: login/register -> verify/reset -> OAuth callback -> 2FA challenge -> password recovery -> session mgmt -> auth hydration
 
 ### Phase 3: Public Experience
 
@@ -678,9 +645,9 @@ UI slice state fields:
 
 ### Phase 6: Dashboard Operations
 
-- Build: dashboard home, library, borrows, reservations, wishlist, reading states
-- APIs: /dashboard, /borrows/my, /reservations/my, /wishlist, /reading/\*
-- Order: dashboard summary -> my library -> borrows/reservations -> reading management
+- Build: dashboard home, library, wishlist, and reading states
+- APIs: /dashboard, /dashboard/library, /wishlist, /reading/\*
+- Order: dashboard summary -> my library -> reading management
 
 ### Phase 7: Notifications + Settings + Profile
 
