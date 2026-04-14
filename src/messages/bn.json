@@ -1,0 +1,17 @@
+{
+    "common": {
+        "appName": "স্ট্যাকরিড",
+        "switchTheme": "থিম পরিবর্তন",
+        "switchLocale": "ভাষা পরিবর্তন",
+        "dashboard": "ড্যাশবোর্ড",
+        "logout": "লগআউট"
+    },
+    "auth": {
+        "loginTitle": "আবার স্বাগতম",
+        "registerTitle": "নতুন অ্যাকাউন্ট তৈরি করুন",
+        "verifyEmailTitle": "ইমেইল যাচাই করুন",
+        "forgotPasswordTitle": "পাসওয়ার্ড ভুলে গেছেন",
+        "resetPasswordTitle": "পাসওয়ার্ড রিসেট করুন",
+        "twoFactorTitle": "টু-ফ্যাক্টর যাচাই"
+    }
+}

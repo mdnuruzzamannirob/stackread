@@ -1,0 +1,17 @@
+{
+    "common": {
+        "appName": "Stackread",
+        "switchTheme": "Switch theme",
+        "switchLocale": "Switch language",
+        "dashboard": "Dashboard",
+        "logout": "Logout"
+    },
+    "auth": {
+        "loginTitle": "Welcome back",
+        "registerTitle": "Create your account",
+        "verifyEmailTitle": "Verify your email",
+        "forgotPasswordTitle": "Forgot password",
+        "resetPasswordTitle": "Reset password",
+        "twoFactorTitle": "Two-factor challenge"
+    }
+}

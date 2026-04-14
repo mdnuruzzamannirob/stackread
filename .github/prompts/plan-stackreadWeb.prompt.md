@@ -30,7 +30,7 @@ Build stackread.com as a production-grade Next.js 16 App Router application for 
 
 - proxy.ts: redirect-only and locale-safe rewriting only, no auth validation
 - Layout server boundary for protected areas verifies session and redirects unauthenticated users
-- Access token session in secure httpOnly cookie
+- Access token session is JWT bearer-based; keep auth state and request helpers aligned with Authorization header usage
 - No middleware-based authorization logic
 - User 2FA is optional and user-controlled in Security Settings
 
@@ -39,26 +39,43 @@ Build stackread.com as a production-grade Next.js 16 App Router application for 
 ### Email login
 
 - POST /auth/login
-- If requiresTwoFactor = false: set session cookie and redirect to /dashboard
+- If requiresTwoFactor = false: persist the authenticated token/session state and redirect to /dashboard
 - If requiresTwoFactor = true: keep tempToken in memory only and redirect to /auth/2fa/challenge
 
 ### 2FA challenge
 
 - POST /auth/2fa/challenge with tempToken + otp
-- On success: set session cookie, clear tempToken from memory
+- On success: persist the authenticated token/session state, clear tempToken from memory
 
 ### OAuth
 
 - GET /auth/google then provider callback
 - GET /auth/facebook then provider callback
-- Handle callback route in app, then normalize session and route to onboarding or dashboard
+- Handle callback route in app, then normalize the authenticated token/session state and route to onboarding or dashboard
 
 ## Backend Truth Constraints
 
+- User app integrates only regular-user backend routes; keep staff/admin modules out of scope except for the public maintenance page.
+- Treat backend path prefix `/api/v1` as canonical and build frontend API helpers around that base.
 - Use country from GET /auth/me for payment gateway UX selection
+- Use GET /payments/gateways/my to determine which gateways are actually available and how they should be ordered in checkout UI
 - Use POST /auth/refresh for session renewal handling
+- Keep POST /auth/logout callable even without a user bearer token (documented as public), but always clear local session state.
+- Treat GET /search/popular-terms and PATCH /notifications/mark-read as canonical backend endpoints
+- Use GET /books/:id/preview for lightweight preview states when the user has not entered the full detail or reader flow
+- Keep onboarding aligned with docs: GET /onboarding/plans is public, POST /onboarding/select and POST /onboarding/complete require user auth.
+- Do not hardcode country-specific gateways such as bKash or Nagad unless they are returned by the backend gateway list.
 - Gracefully handle no Firebase device-token endpoint
 - SMS flows disabled in frontend UX despite legacy documentation references
+
+## Documentation Ground Truth (Source of Truth)
+
+- Source files: stackread-backend/docs/openAPI.json, stackread-backend/docs/postman-collection.json, stackread-backend/README.md
+- OpenAPI title/version: LMS Backend API v1.0.0
+- OpenAPI coverage: 150 paths, 184 operations
+- Postman coverage: 184 requests (GET 74, POST 60, PATCH 28, DELETE 14, PUT 8)
+- Security schemes in OpenAPI operations: bearerUserAuth (53), bearerStaffAuth (68), public (63)
+- Active backend modules mounted in src/app/routes.ts: 24
 
 ## Complete Page Inventory
 
@@ -95,7 +112,7 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 - Description: Book metadata, reviews, CTA for read/review/wishlist
 - Access: Public
 - Render: Server page + client review/wishlist actions when authenticated
-- APIs: GET /books/:id, GET /books/:bookId/reviews, POST /books/:bookId/reviews, POST /wishlist/:bookId
+- APIs: GET /books/:id, GET /books/:id/preview, GET /books/:bookId/reviews, POST /books/:bookId/reviews, POST /wishlist/:bookId
 - Key components: BookHeader, BookMetaPanel, ReviewList, ActionCTAGroup
 
 5. Route: /[locale]/authors
@@ -135,7 +152,7 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 - Description: Search results, filters, suggestions
 - Access: Public
 - Render: Client-heavy for interactive query states
-- APIs: GET /search, GET /search/suggestions, GET /search/popular-terms, POST /search/log-click
+- APIs: GET /search, GET /search/history, GET /search/suggestions, GET /search/popular-terms, POST /search/log-click
 - Key components: SearchBar, SuggestionPanel, ResultGrid, SearchFilterSidebar
 
 10. Route: /[locale]/about
@@ -323,7 +340,7 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 - Access: User
 - Render: Client-heavy unified reader
-- APIs: POST /reading/:bookId/start, PATCH /reading/:bookId/progress, POST /reading/:bookId/session, GET/POST/PATCH/DELETE /books/:bookId/bookmarks, GET/POST/PATCH/DELETE /books/:bookId/highlights
+- APIs: POST /reading/:bookId/start, PATCH /reading/:bookId/progress, POST /reading/:bookId/session, GET /books/:bookId/bookmarks, POST /books/:bookId/bookmarks, PATCH /books/:bookId/bookmarks/:id, DELETE /books/:bookId/bookmarks/:id, GET /books/:bookId/highlights, POST /books/:bookId/highlights, PATCH /books/:bookId/highlights/:id, DELETE /books/:bookId/highlights/:id
 - Components: UnifiedReader, PdfReaderPane, EpubReaderPane, ReaderToolbar, BookmarkPopover, HighlightContextMenu
 
 34. Route: /[locale]/dashboard/bookmarks
@@ -351,15 +368,15 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 - Access: User
 - Render: Client interactions
-- APIs: GET /notifications, PATCH /notifications/:id/read, PATCH /notifications/mark-read
+- APIs: GET /notifications, GET /notifications/unread-count, PATCH /notifications/:id/read, PATCH /notifications/mark-read
 - Components: NotificationCenterList
 
 38. Route: /[locale]/dashboard/subscription
 
 - Access: User
 - Render: Server
-- APIs: GET /subscriptions/my, GET /subscriptions/my/history, GET /plans
-- Components: CurrentPlanCard, UsagePanel, SubscriptionTimeline
+- APIs: GET /subscriptions/my, GET /subscriptions/my/history, PATCH /subscriptions/my/cancel, PATCH /subscriptions/my/downgrade, PATCH /subscriptions/my/renew, PATCH /subscriptions/my/upgrade, GET /plans
+- Components: CurrentPlanCard, UsagePanel, SubscriptionTimeline, SubscriptionActions
 
 39. Route: /[locale]/dashboard/subscription/history
 
@@ -372,7 +389,7 @@ Each page includes route, purpose, access, rendering strategy, backend endpoints
 
 - Access: User
 - Render: Client checkout orchestration
-- APIs: GET /auth/me, GET /plans, POST /coupons/validate, POST /payments/initiate, POST /payments/verify
+- APIs: GET /auth/me, GET /payments/gateways/my, GET /plans, POST /coupons/validate, POST /payments/initiate, POST /payments/verify
 - Components: CheckoutSummary, GatewaySelectorByCountry, StripeElementsForm, RedirectGatewayActions
 
 41. Route: /[locale]/dashboard/payment/result
@@ -537,9 +554,9 @@ UI slice state fields:
 ## Payment Flow
 
 1. Read country and plan context from GET /auth/me and selected plan data.
-2. Bangladesh UX presents bKash/Nagad first; international UX presents Stripe/PayPal first.
-3. Stripe uses inline Elements client flow.
-4. SSLCommerz/PayPal style flows are redirect return flows.
+2. Read available gateway ordering from GET /payments/gateways/my and adapt the checkout UI to the returned list.
+3. Stripe uses inline Elements client flow when selected.
+4. Redirect-style gateways such as PayPal or SSLCommerz should use return-state handling.
 5. Finalize all outcomes through POST /payments/verify and show payment result page.
 
 ## Reader Flow
@@ -600,8 +617,9 @@ UI slice state fields:
 
 ## Endpoint Coverage Index (Backend Implemented)
 
-- OpenAPI paths mapped: 149
-- Postman requests mapped: 183
+- OpenAPI paths mapped: 150
+- OpenAPI operations mapped: 184
+- Postman requests mapped: 184
 - Active backend modules mounted in src/app/routes.ts: 24 (no reservations/borrows modules)
 
 ## Implementation Phases
@@ -632,7 +650,7 @@ UI slice state fields:
 ### Phase 4: Subscription + Checkout + Payment
 
 - Build: pricing, checkout, payment result/history, subscription overview/history
-- APIs: /plans, /subscriptions/my, /subscriptions/my/history, /coupons/validate, /payments/initiate, /payments/verify, /payments/my
+- APIs: /plans, /subscriptions/my, /subscriptions/my/history, /subscriptions/my/cancel, /subscriptions/my/downgrade, /subscriptions/my/renew, /subscriptions/my/upgrade, /coupons/validate, /payments/gateways/my, /payments/initiate, /payments/verify, /payments/my
 - Dependencies: stripe-js, secure callback handling
 - Order: pricing -> checkout -> verify callback -> payment history -> subscription views
 
@@ -652,7 +670,7 @@ UI slice state fields:
 ### Phase 7: Notifications + Settings + Profile
 
 - Build: notification center and account settings pages
-- APIs: /notifications, /auth/me, /auth/me/password, /auth/me/notification-prefs, /auth/2fa/\*
+- APIs: /notifications, /notifications/unread-count, /auth/me, /auth/me/password, /auth/me/notification-prefs, /auth/2fa/\*
 - Order: profile -> security -> notifications
 
 ### Phase 8: i18n + SEO + Tests + Deploy
@@ -664,10 +682,9 @@ UI slice state fields:
 
 ## Known Backend Inconsistencies to Track
 
-- Some older docs mention SMS and separate bKash/Nagad webhook endpoints, while backend currently uses POST /webhooks/:gateway dynamic route.
-- Older docs mention /notifications/read-all, backend currently exposes PATCH /notifications/mark-read.
+- Older docs mention SMS and separate bKash/Nagad webhook endpoints, while backend currently uses POST /webhooks/:gateway dynamic route.
+- Older docs mention /notifications/read-all, backend currently exposes the PATCH endpoint /notifications/mark-read for bulk-read behavior.
 - Legacy docs include /coupons/validate as authenticated user-only; backend route currently allows unauthenticated validation.
-- User-flow guidance says avoid /payments/gateways/my, but backend currently exposes GET /payments/gateways/my.
 - Legacy docs mention /search/popular, backend currently uses /search/popular-terms.
 
 ## Non-Negotiables
