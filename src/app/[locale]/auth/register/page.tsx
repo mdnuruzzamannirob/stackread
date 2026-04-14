@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import { extractRegisterSession } from '@/lib/auth/normalize-auth'
 import { persistSession } from '@/lib/auth/token-storage'
 import { useRegisterMutation } from '@/store/features/auth/authApi'
@@ -17,11 +18,11 @@ import { setAuthenticatedSession } from '@/store/features/auth/authSlice'
 import { useAppDispatch } from '@/store/hooks'
 
 const registerSchema = z.object({
-  firstName: z.string().min(2),
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().optional(),
-  email: z.email(),
-  countryCode: z.string().min(1),
-  password: z.string().min(8),
+  email: z.email('Enter a valid email address'),
+  countryCode: z.string().min(1, 'Country code is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 type RegisterValues = z.infer<typeof registerSchema>
@@ -31,6 +32,7 @@ export default function RegisterPage() {
   const locale = params.locale ?? 'en'
   const router = useRouter()
   const dispatch = useAppDispatch()
+  useRedirectAuthenticated(locale)
   const [register, { isLoading }] = useRegisterMutation()
 
   const form = useForm<RegisterValues>({
@@ -88,6 +90,11 @@ export default function RegisterPage() {
             className="h-10 w-full rounded-lg border border-input px-3 text-sm"
             {...form.register('firstName')}
           />
+          {form.formState.errors.firstName ? (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.firstName.message}
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Last name</label>
@@ -95,6 +102,11 @@ export default function RegisterPage() {
             className="h-10 w-full rounded-lg border border-input px-3 text-sm"
             {...form.register('lastName')}
           />
+          {form.formState.errors.lastName ? (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.lastName.message}
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Email</label>
@@ -103,6 +115,11 @@ export default function RegisterPage() {
             className="h-10 w-full rounded-lg border border-input px-3 text-sm"
             {...form.register('email')}
           />
+          {form.formState.errors.email ? (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.email.message}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
@@ -111,6 +128,11 @@ export default function RegisterPage() {
               className="h-10 w-full rounded-lg border border-input px-3 text-sm"
               {...form.register('countryCode')}
             />
+            {form.formState.errors.countryCode ? (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.countryCode.message}
+              </p>
+            ) : null}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Password</label>
@@ -119,6 +141,11 @@ export default function RegisterPage() {
               className="h-10 w-full rounded-lg border border-input px-3 text-sm"
               {...form.register('password')}
             />
+            {form.formState.errors.password ? (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.password.message}
+              </p>
+            ) : null}
           </div>
         </div>
 

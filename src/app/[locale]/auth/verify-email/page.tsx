@@ -8,20 +8,26 @@ import { toast } from 'sonner'
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import { useVerifyEmailMutation } from '@/store/features/auth/authApi'
 
 export default function VerifyEmailPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
+  useRedirectAuthenticated(locale)
   const searchParams = useSearchParams()
   const [token, setToken] = useState(searchParams.get('token') ?? '')
+  const [tokenError, setTokenError] = useState<string | null>(null)
   const [verifyEmail, { isLoading }] = useVerifyEmailMutation()
 
   const onVerify = async () => {
-    if (!token) {
+    if (!token.trim()) {
+      setTokenError('Verification token is required')
       toast.error('Verification token is required')
       return
     }
+
+    setTokenError(null)
 
     try {
       await verifyEmail({ token }).unwrap()
@@ -39,10 +45,18 @@ export default function VerifyEmailPage() {
       <div className="space-y-3">
         <input
           value={token}
-          onChange={(event) => setToken(event.target.value)}
+          onChange={(event) => {
+            setToken(event.target.value)
+            if (tokenError) {
+              setTokenError(null)
+            }
+          }}
           className="h-10 w-full rounded-lg border border-input px-3 text-sm"
           placeholder="Verification token"
         />
+        {tokenError ? (
+          <p className="text-xs text-destructive">{tokenError}</p>
+        ) : null}
         <Button
           type="button"
           className="w-full"

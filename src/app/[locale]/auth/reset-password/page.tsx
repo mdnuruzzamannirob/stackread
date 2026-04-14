@@ -1,12 +1,13 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import {
   useResendResetOtpMutation,
   useResetPasswordMutation,
@@ -14,11 +15,17 @@ import {
 } from '@/store/features/auth/authApi'
 
 export default function ResetPasswordPage() {
+  const params = useParams<{ locale: string }>()
+  const locale = params.locale ?? 'en'
+  useRedirectAuthenticated(locale)
   const searchParams = useSearchParams()
   const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [otp, setOtp] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [resetToken, setResetToken] = useState('')
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const [resendResetOtp, { isLoading: isResending }] =
     useResendResetOtpMutation()
@@ -26,7 +33,49 @@ export default function ResetPasswordPage() {
     useVerifyResetOtpMutation()
   const [resetPassword, { isLoading: isResetting }] = useResetPasswordMutation()
 
+  const hasValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+  const validateEmail = () => {
+    if (!email.trim()) {
+      setEmailError('Email is required')
+      return false
+    }
+
+    if (!hasValidEmail(email)) {
+      setEmailError('Enter a valid email address')
+      return false
+    }
+
+    setEmailError(null)
+    return true
+  }
+
+  const validateOtp = () => {
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpError('OTP must be 6 digits')
+      return false
+    }
+
+    setOtpError(null)
+    return true
+  }
+
+  const validatePassword = () => {
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters')
+      return false
+    }
+
+    setPasswordError(null)
+    return true
+  }
+
   const onResendOtp = async () => {
+    if (!validateEmail()) {
+      return
+    }
+
     try {
       await resendResetOtp({ email }).unwrap()
       toast.success('Reset OTP resent')
@@ -36,6 +85,10 @@ export default function ResetPasswordPage() {
   }
 
   const onVerifyOtp = async () => {
+    if (!validateEmail() || !validateOtp()) {
+      return
+    }
+
     try {
       const response = await verifyResetOtp({ email, otp }).unwrap()
       const token = (response.data as { resetToken?: string }).resetToken
@@ -58,6 +111,10 @@ export default function ResetPasswordPage() {
       return
     }
 
+    if (!validatePassword()) {
+      return
+    }
+
     try {
       await resetPassword({ resetToken, newPassword }).unwrap()
       toast.success('Password reset complete')
@@ -74,16 +131,29 @@ export default function ResetPasswordPage() {
       <div className="space-y-3">
         <input
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => {
+            setEmail(event.target.value)
+            if (emailError) {
+              setEmailError(null)
+            }
+          }}
           className="h-10 w-full rounded-lg border border-input px-3 text-sm"
           type="email"
           placeholder="Email address"
         />
+        {emailError ? (
+          <p className="text-xs text-destructive">{emailError}</p>
+        ) : null}
 
         <div className="flex gap-2">
           <input
             value={otp}
-            onChange={(event) => setOtp(event.target.value)}
+            onChange={(event) => {
+              setOtp(event.target.value)
+              if (otpError) {
+                setOtpError(null)
+              }
+            }}
             className="h-10 w-full rounded-lg border border-input px-3 text-sm"
             placeholder="6-digit OTP"
           />
@@ -96,6 +166,9 @@ export default function ResetPasswordPage() {
             Verify OTP
           </Button>
         </div>
+        {otpError ? (
+          <p className="text-xs text-destructive">{otpError}</p>
+        ) : null}
 
         <Button
           type="button"
@@ -108,11 +181,19 @@ export default function ResetPasswordPage() {
 
         <input
           value={newPassword}
-          onChange={(event) => setNewPassword(event.target.value)}
+          onChange={(event) => {
+            setNewPassword(event.target.value)
+            if (passwordError) {
+              setPasswordError(null)
+            }
+          }}
           className="h-10 w-full rounded-lg border border-input px-3 text-sm"
           type="password"
           placeholder="New password"
         />
+        {passwordError ? (
+          <p className="text-xs text-destructive">{passwordError}</p>
+        ) : null}
 
         <Button
           type="button"

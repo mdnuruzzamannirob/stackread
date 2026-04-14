@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import { extractLoginPayload } from '@/lib/auth/normalize-auth'
 import { persistSession } from '@/lib/auth/token-storage'
 import { env } from '@/lib/env'
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const dispatch = useAppDispatch()
+  useRedirectAuthenticated(locale)
 
   const [login, { isLoading }] = useLoginMutation()
 
@@ -93,6 +95,11 @@ export default function LoginPage() {
             autoComplete="email"
             {...form.register('email')}
           />
+          {form.formState.errors.email ? (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.email.message}
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">Password</label>
@@ -102,6 +109,11 @@ export default function LoginPage() {
             autoComplete="current-password"
             {...form.register('password')}
           />
+          {form.formState.errors.password ? (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.password.message}
+            </p>
+          ) : null}
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>

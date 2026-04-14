@@ -8,7 +8,6 @@ import {
 import {
   clearSession,
   getStoredAccessToken,
-  getStoredRefreshToken,
   persistSession,
 } from '@/lib/auth/token-storage'
 import { env } from '@/lib/env'
@@ -19,6 +18,7 @@ import {
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: env.apiBaseUrl,
+  credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as { auth?: { token?: string | null } }
     const token = state.auth?.token ?? getStoredAccessToken()
@@ -43,14 +43,6 @@ export const baseQueryWithReauth: BaseQueryFn<
     return result
   }
 
-  const refreshToken = getStoredRefreshToken()
-
-  if (!refreshToken) {
-    clearSession()
-    api.dispatch(clearAuthState())
-    return result
-  }
-
   const refreshResult = await rawBaseQuery(
     {
       url: '/auth/refresh',
@@ -70,7 +62,7 @@ export const baseQueryWithReauth: BaseQueryFn<
     return result
   }
 
-  persistSession({ accessToken, refreshToken })
+  persistSession({ accessToken })
   api.dispatch(setHydratedToken(accessToken))
 
   result = await rawBaseQuery(args, api, extraOptions)

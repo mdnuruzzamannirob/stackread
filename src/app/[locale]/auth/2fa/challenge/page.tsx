@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useRequireTempToken } from '@/lib/auth/guards'
 import { extractSession } from '@/lib/auth/normalize-auth'
 import { persistSession } from '@/lib/auth/token-storage'
 import {
@@ -21,9 +22,11 @@ export default function TwoFactorChallengePage() {
   const locale = params.locale ?? 'en'
   const router = useRouter()
   const dispatch = useAppDispatch()
+  useRequireTempToken(locale)
 
   const tempToken = useAppSelector((state) => state.auth.tempToken)
   const [otp, setOtp] = useState('')
+  const [otpError, setOtpError] = useState<string | null>(null)
 
   const [challengeTwoFactor, { isLoading }] = useChallengeTwoFactorMutation()
   const [sendEmailOtp, { isLoading: isSending }] =
@@ -48,6 +51,13 @@ export default function TwoFactorChallengePage() {
       toast.error('Missing temporary token')
       return
     }
+
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpError('OTP must be 6 digits')
+      return
+    }
+
+    setOtpError(null)
 
     try {
       const response = await challengeTwoFactor({ tempToken, otp }).unwrap()
@@ -84,10 +94,18 @@ export default function TwoFactorChallengePage() {
       <div className="space-y-3">
         <input
           value={otp}
-          onChange={(event) => setOtp(event.target.value)}
+          onChange={(event) => {
+            setOtp(event.target.value)
+            if (otpError) {
+              setOtpError(null)
+            }
+          }}
           className="h-10 w-full rounded-lg border border-input px-3 text-sm"
           placeholder="6-digit OTP"
         />
+        {otpError ? (
+          <p className="text-xs text-destructive">{otpError}</p>
+        ) : null}
         <Button
           type="button"
           className="w-full"

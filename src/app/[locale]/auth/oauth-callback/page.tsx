@@ -5,12 +5,12 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/layout/auth-card'
+import { parseOAuthCallbackParams } from '@/lib/auth/normalize-auth'
 import { persistSession } from '@/lib/auth/token-storage'
 import {
   setAuthenticatedSession,
   setLoginOutcome,
 } from '@/store/features/auth/authSlice'
-import type { UserProfile } from '@/store/features/auth/types'
 import { useAppDispatch } from '@/store/hooks'
 
 export default function OAuthCallbackPage() {
@@ -21,10 +21,8 @@ export default function OAuthCallbackPage() {
   const dispatch = useAppDispatch()
 
   useEffect(() => {
-    const accessToken = searchParams.get('accessToken')
-    const refreshToken = searchParams.get('refreshToken')
-    const tempToken = searchParams.get('tempToken')
-    const requiresTwoFactor = searchParams.get('requiresTwoFactor') === 'true'
+    const { accessToken, refreshToken, tempToken, requiresTwoFactor, user } =
+      parseOAuthCallbackParams(searchParams)
 
     if (requiresTwoFactor && tempToken) {
       dispatch(
@@ -44,20 +42,18 @@ export default function OAuthCallbackPage() {
       return
     }
 
-    const user: UserProfile = {
-      id: searchParams.get('id') ?? 'oauth-user',
-      email: searchParams.get('email') ?? '',
-      firstName: searchParams.get('firstName') ?? 'User',
-      lastName: searchParams.get('lastName') ?? '',
-      provider:
-        (searchParams.get('provider') as UserProfile['provider']) ?? 'google',
+    persistSession({ accessToken, refreshToken: refreshToken ?? undefined })
+    const resolvedUser = user ?? {
+      id: 'oauth-user',
+      email: '',
+      firstName: 'User',
+      provider: 'google' as const,
     }
 
-    persistSession({ accessToken, refreshToken: refreshToken ?? undefined })
     dispatch(
       setAuthenticatedSession({
         token: accessToken,
-        user,
+        user: resolvedUser,
       }),
     )
 
