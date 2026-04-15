@@ -36,7 +36,9 @@ export type SelectOnboardingPlanResponse = {
   id: string
   plan: OnboardingPlan
   status: OnboardingStatus
-  nextStep: 'redirect_to_payment' | 'complete_onboarding'
+  nextStep: 'redirect_to_payment' | 'onboarding_completed'
+  checkout_url?: string
+  paymentId?: string
 }
 
 export const onboardingApi = baseApi.injectEndpoints({

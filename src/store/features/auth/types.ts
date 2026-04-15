@@ -42,7 +42,7 @@ export type AuthTokens = {
 
 export type RegisterResponse = {
   user: UserProfile
-  tokens: AuthTokens
+  requiresEmailVerification: true
 }
 
 export type LoginSuccessPayload = {

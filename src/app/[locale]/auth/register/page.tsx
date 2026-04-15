@@ -8,12 +8,14 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { AuthCard } from '@/components/layout/auth-card'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import { extractRegisterSession } from '@/lib/auth/normalize-auth'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import { persistSession } from '@/lib/auth/token-storage'
+import { env } from '@/lib/env'
+import { cn } from '@/lib/utils'
 import {
   useLazyMeQuery,
   useRegisterMutation,
@@ -174,6 +176,21 @@ export default function RegisterPage() {
           Sign in
         </Link>
       </p>
+
+      <div className="mt-4 grid gap-2">
+        <a
+          className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
+          href={`${env.apiBaseUrl}/auth/google`}
+        >
+          Continue with Google
+        </a>
+        <a
+          className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
+          href={`${env.apiBaseUrl}/auth/facebook`}
+        >
+          Continue with Facebook
+        </a>
+      </div>
     </AuthCard>
   )
 }

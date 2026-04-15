@@ -23,9 +23,9 @@ const authSlice = createSlice({
   reducers: {
     setAuthenticatedSession: (
       state,
-      action: PayloadAction<{ token: string; user: UserProfile }>,
+      action: PayloadAction<{ token?: string | null; user: UserProfile }>,
     ) => {
-      state.token = action.payload.token
+      state.token = action.payload.token ?? null
       state.user = action.payload.user
       state.requiresTwoFactor = false
       state.tempToken = null
@@ -36,7 +36,17 @@ const authSlice = createSlice({
       state.requiresTwoFactor = action.payload.requiresTwoFactor
       if (action.payload.requiresTwoFactor) {
         state.tempToken = action.payload.tempToken
+      } else {
+        state.tempToken = null
       }
+    },
+    setTempToken: (state, action: PayloadAction<string | null>) => {
+      state.tempToken = action.payload
+      state.requiresTwoFactor = Boolean(action.payload)
+    },
+    clearTempToken: (state) => {
+      state.tempToken = null
+      state.requiresTwoFactor = false
     },
     setOnboardingStatus: (
       state,
@@ -58,6 +68,8 @@ const authSlice = createSlice({
 export const {
   setAuthenticatedSession,
   setLoginOutcome,
+  setTempToken,
+  clearTempToken,
   setOnboardingStatus,
   setHydratedToken,
   clearAuthState,

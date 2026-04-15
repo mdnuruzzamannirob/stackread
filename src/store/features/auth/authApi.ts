@@ -54,6 +54,7 @@ type TwoFactorChallengeBody = {
   tempToken: string
   otp?: string
   emailOtp?: string
+  backupCode?: string
 }
 
 type RefreshResponse = { accessToken: string }
@@ -169,10 +170,21 @@ export const authApi = baseApi.injectEndpoints({
     }),
     disableTwoFactor: builder.mutation<
       ApiEnvelope<SuccessResponse>,
-      { otp: string }
+      { otp?: string; currentPassword?: string }
     >({
       query: (body) => ({
         url: '/auth/2fa/disable',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+    regenerateBackupCodes: builder.mutation<
+      ApiEnvelope<{ backupCodes: string[] }>,
+      { otp?: string; currentPassword?: string }
+    >({
+      query: (body) => ({
+        url: '/auth/2fa/backup-codes/regenerate',
         method: 'POST',
         body,
       }),
@@ -261,6 +273,7 @@ export const {
   useEnableTwoFactorMutation,
   useVerifyTwoFactorMutation,
   useDisableTwoFactorMutation,
+  useRegenerateBackupCodesMutation,
   useGetTwoFactorBackupCodesCountQuery,
   useLazyGetTwoFactorBackupCodesCountQuery,
   useLogoutMutation,

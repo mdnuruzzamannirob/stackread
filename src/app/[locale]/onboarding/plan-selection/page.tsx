@@ -18,6 +18,7 @@ export default function OnboardingPlanSelectionPage() {
   const locale = params.locale ?? 'en'
   const router = useRouter()
   const [selectedPlanCode, setSelectedPlanCode] = useState<string | null>(null)
+  const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false)
   const { data: plansResponse, isLoading: isPlansLoading } =
     useGetOnboardingPlansQuery()
   const { data: statusResponse } = useGetOnboardingStatusQuery()
@@ -38,17 +39,26 @@ export default function OnboardingPlanSelectionPage() {
     try {
       const response = await selectOnboardingPlan({ planCode }).unwrap()
       const nextStep = response.data?.nextStep
+      const checkoutUrl = response.data?.checkout_url
 
       toast.success('Plan selected')
 
       if (nextStep === 'redirect_to_payment') {
-        router.push(`/${locale}/onboarding/completion?paymentRequired=1`)
+        if (!checkoutUrl) {
+          toast.error('Payment URL is missing. Please try again.')
+          return
+        }
+
+        setIsRedirectingToStripe(true)
+        window.location.href = checkoutUrl
         return
       }
 
-      router.push(`/${locale}/onboarding/completion`)
+      router.push(`/${locale}/dashboard`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Unable to select plan'))
+    } finally {
+      setIsRedirectingToStripe(false)
     }
   }
 
@@ -83,10 +93,15 @@ export default function OnboardingPlanSelectionPage() {
                 type="button"
                 className="mt-4 w-full"
                 onClick={() => void selectPlan(plan.code)}
-                disabled={isSubmitting && selectedPlanCode !== plan.code}
+                disabled={
+                  isRedirectingToStripe ||
+                  (isSubmitting && selectedPlanCode !== plan.code)
+                }
               >
                 {selectedPlanCode === plan.code && isSubmitting
-                  ? 'Saving...'
+                  ? isRedirectingToStripe
+                    ? 'Redirecting to Stripe...'
+                    : 'Saving...'
                   : 'Select plan'}
               </Button>
             </div>

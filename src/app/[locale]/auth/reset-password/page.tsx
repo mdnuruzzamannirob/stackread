@@ -1,6 +1,7 @@
 'use client'
 
-import { useParams, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -8,57 +9,35 @@ import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { useRedirectAuthenticated } from '@/lib/auth/guards'
-import {
-  useResendResetOtpMutation,
-  useResetPasswordMutation,
-  useVerifyResetOtpMutation,
-} from '@/store/features/auth/authApi'
+import { useResetPasswordMutation } from '@/store/features/auth/authApi'
 
 export default function ResetPasswordPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
+  const router = useRouter()
   useRedirectAuthenticated(locale)
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState(searchParams.get('email') ?? '')
-  const [otp, setOtp] = useState('')
+  const resetToken = searchParams.get('resetToken') ?? ''
+  const email = searchParams.get('email') ?? ''
   const [newPassword, setNewPassword] = useState('')
-  const [resetToken, setResetToken] = useState('')
-  const [emailError, setEmailError] = useState<string | null>(null)
-  const [otpError, setOtpError] = useState<string | null>(null)
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
 
-  const [resendResetOtp, { isLoading: isResending }] =
-    useResendResetOtpMutation()
-  const [verifyResetOtp, { isLoading: isVerifying }] =
-    useVerifyResetOtpMutation()
   const [resetPassword, { isLoading: isResetting }] = useResetPasswordMutation()
 
-  const hasValidEmail = (value: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  const getPasswordStrength = (value: string) => {
+    let score = 0
 
-  const validateEmail = () => {
-    if (!email.trim()) {
-      setEmailError('Email is required')
-      return false
-    }
+    if (value.length >= 8) score += 1
+    if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score += 1
+    if (/\d/.test(value)) score += 1
+    if (/[^A-Za-z0-9]/.test(value)) score += 1
 
-    if (!hasValidEmail(email)) {
-      setEmailError('Enter a valid email address')
-      return false
-    }
+    if (score <= 1) return { label: 'Weak', width: '25%' }
+    if (score === 2) return { label: 'Fair', width: '50%' }
+    if (score === 3) return { label: 'Good', width: '75%' }
 
-    setEmailError(null)
-    return true
-  }
-
-  const validateOtp = () => {
-    if (!/^\d{6}$/.test(otp)) {
-      setOtpError('OTP must be 6 digits')
-      return false
-    }
-
-    setOtpError(null)
-    return true
+    return { label: 'Strong', width: '100%' }
   }
 
   const validatePassword = () => {
@@ -67,47 +46,18 @@ export default function ResetPasswordPage() {
       return false
     }
 
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match')
+      return false
+    }
+
     setPasswordError(null)
     return true
   }
 
-  const onResendOtp = async () => {
-    if (!validateEmail()) {
-      return
-    }
-
-    try {
-      await resendResetOtp({ email }).unwrap()
-      toast.success('Reset OTP resent')
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Could not resend OTP'))
-    }
-  }
-
-  const onVerifyOtp = async () => {
-    if (!validateEmail() || !validateOtp()) {
-      return
-    }
-
-    try {
-      const response = await verifyResetOtp({ email, otp }).unwrap()
-      const token = (response.data as { resetToken?: string }).resetToken
-
-      if (!token) {
-        toast.error('Reset token missing in response')
-        return
-      }
-
-      setResetToken(token)
-      toast.success('OTP verified')
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, 'OTP verification failed'))
-    }
-  }
-
   const onResetPassword = async () => {
     if (!resetToken) {
-      toast.error('Verify OTP first')
+      toast.error('Your reset session is missing. Verify OTP again.')
       return
     }
 
@@ -117,67 +67,28 @@ export default function ResetPasswordPage() {
 
     try {
       await resetPassword({ resetToken, newPassword }).unwrap()
-      toast.success('Password reset complete')
+      toast.success(
+        'Password reset complete. You have been signed out on other devices.',
+      )
+      router.replace(`/${locale}/auth/login?reset=1`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Password reset failed'))
     }
   }
 
+  const strength = getPasswordStrength(newPassword)
+
   return (
     <AuthCard
       title="Reset password"
-      subtitle="Verify OTP, then set a new password."
+      subtitle="Set your new password to finish account recovery."
     >
       <div className="space-y-3">
-        <input
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value)
-            if (emailError) {
-              setEmailError(null)
-            }
-          }}
-          className="h-10 w-full rounded-lg border border-input px-3 text-sm"
-          type="email"
-          placeholder="Email address"
-        />
-        {emailError ? (
-          <p className="text-xs text-destructive">{emailError}</p>
+        {email ? (
+          <p className="text-xs text-muted-foreground">
+            Resetting password for {email}
+          </p>
         ) : null}
-
-        <div className="flex gap-2">
-          <input
-            value={otp}
-            onChange={(event) => {
-              setOtp(event.target.value)
-              if (otpError) {
-                setOtpError(null)
-              }
-            }}
-            className="h-10 w-full rounded-lg border border-input px-3 text-sm"
-            placeholder="6-digit OTP"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onVerifyOtp}
-            disabled={isVerifying}
-          >
-            Verify OTP
-          </Button>
-        </div>
-        {otpError ? (
-          <p className="text-xs text-destructive">{otpError}</p>
-        ) : null}
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onResendOtp}
-          disabled={isResending}
-        >
-          Resend OTP
-        </Button>
 
         <input
           value={newPassword}
@@ -191,6 +102,32 @@ export default function ResetPasswordPage() {
           type="password"
           placeholder="New password"
         />
+
+        <div className="space-y-1">
+          <div className="h-2 w-full rounded-full bg-muted">
+            <div
+              className="h-2 rounded-full bg-primary transition-all"
+              style={{ width: strength.width }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Strength: {strength.label}
+          </p>
+        </div>
+
+        <input
+          value={confirmPassword}
+          onChange={(event) => {
+            setConfirmPassword(event.target.value)
+            if (passwordError) {
+              setPasswordError(null)
+            }
+          }}
+          className="h-10 w-full rounded-lg border border-input px-3 text-sm"
+          type="password"
+          placeholder="Confirm new password"
+        />
+
         {passwordError ? (
           <p className="text-xs text-destructive">{passwordError}</p>
         ) : null}
@@ -203,6 +140,18 @@ export default function ResetPasswordPage() {
         >
           {isResetting ? 'Resetting...' : 'Reset password'}
         </Button>
+
+        {!resetToken ? (
+          <p className="text-xs text-muted-foreground">
+            Missing reset token.{' '}
+            <Link
+              href={`/${locale}/auth/verify-otp${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Verify OTP again
+            </Link>
+          </p>
+        ) : null}
       </div>
     </AuthCard>
   )

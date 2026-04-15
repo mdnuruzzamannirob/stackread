@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/layout/auth-card'
@@ -18,9 +18,28 @@ export default function CheckEmailPage() {
   useRedirectAuthenticated(locale)
   const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(0)
   const [resendVerification, { isLoading }] = useResendVerificationMutation()
 
+  useEffect(() => {
+    if (cooldown <= 0) {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      setCooldown((value) => Math.max(0, value - 1))
+    }, 1000)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [cooldown])
+
   const resend = async () => {
+    if (cooldown > 0) {
+      return
+    }
+
     if (!email.trim()) {
       setEmailError('Email is required')
       toast.error('Email is required')
@@ -37,6 +56,7 @@ export default function CheckEmailPage() {
 
     try {
       await resendVerification({ email }).unwrap()
+      setCooldown(60)
       toast.success('Verification email resent')
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Unable to resend verification'))
@@ -68,9 +88,13 @@ export default function CheckEmailPage() {
           type="button"
           className="w-full"
           onClick={resend}
-          disabled={isLoading}
+          disabled={isLoading || cooldown > 0}
         >
-          {isLoading ? 'Sending...' : 'Resend verification'}
+          {isLoading
+            ? 'Sending...'
+            : cooldown > 0
+              ? `Resend in ${cooldown}s`
+              : 'Resend verification'}
         </Button>
       </div>
 

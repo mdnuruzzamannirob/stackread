@@ -7,7 +7,11 @@ import { toast } from 'sonner'
 import { AuthCard } from '@/components/layout/auth-card'
 import { parseOAuthCallbackParams } from '@/lib/auth/normalize-auth'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
-import { persistSession } from '@/lib/auth/token-storage'
+import {
+  clearPersistedTempToken,
+  persistTempToken,
+} from '@/lib/auth/temp-token'
+import { getStoredAccessToken, persistSession } from '@/lib/auth/token-storage'
 import { useLazyMeQuery } from '@/store/features/auth/authApi'
 import {
   setAuthenticatedSession,
@@ -34,6 +38,7 @@ export default function OAuthCallbackPage() {
     }
 
     if (requiresTwoFactor && tempToken) {
+      persistTempToken(tempToken)
       dispatch(
         setLoginOutcome({
           requiresTwoFactor: true,
@@ -46,24 +51,23 @@ export default function OAuthCallbackPage() {
       return
     }
 
-    if (!accessToken) {
-      toast.error('OAuth callback did not return an access token')
-      router.replace(`/${locale}/auth/login`)
-      return
+    if (accessToken) {
+      persistSession({
+        accessToken,
+        refreshToken: refreshToken ?? undefined,
+      })
     }
 
-    persistSession({
-      accessToken,
-      refreshToken: refreshToken ?? undefined,
-    })
+    clearPersistedTempToken()
 
     void (async () => {
       try {
         const meResponse = await loadMe().unwrap()
+        const storedToken = getStoredAccessToken()
 
         dispatch(
           setAuthenticatedSession({
-            token: accessToken,
+            token: storedToken,
             user: meResponse.data,
           }),
         )
@@ -71,7 +75,7 @@ export default function OAuthCallbackPage() {
         toast.success('OAuth login successful')
 
         const destination = await resolveAuthenticatedDestination({
-          accessToken,
+          accessToken: storedToken,
           locale,
         })
 

@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   const [
     updateNotificationPreferences,
@@ -36,9 +37,37 @@ export default function SettingsPage() {
     }
   }
 
+  const onToggleNotifications = async (
+    next: Partial<{ email: boolean; push: boolean }>,
+  ) => {
+    const previous = {
+      email: emailNotifications,
+      push: pushNotifications,
+    }
+
+    setEmailNotifications(next.email ?? previous.email)
+    setPushNotifications(next.push ?? previous.push)
+
+    try {
+      await updateNotificationPreferences({
+        email: next.email ?? previous.email,
+        push: next.push ?? previous.push,
+      }).unwrap()
+    } catch (error) {
+      setEmailNotifications(previous.email)
+      setPushNotifications(previous.push)
+      toast.error(getApiErrorMessage(error, 'Unable to update notifications'))
+    }
+  }
+
   const onChangePassword = async () => {
     if (newPassword.length < 8) {
       toast.error('New password must be at least 8 characters')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirmation do not match')
       return
     }
 
@@ -47,6 +76,7 @@ export default function SettingsPage() {
       toast.success('Password changed successfully')
       setCurrentPassword('')
       setNewPassword('')
+      setConfirmPassword('')
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Unable to change password'))
     }
@@ -65,7 +95,9 @@ export default function SettingsPage() {
             <input
               type="checkbox"
               checked={emailNotifications}
-              onChange={(event) => setEmailNotifications(event.target.checked)}
+              onChange={(event) =>
+                void onToggleNotifications({ email: event.target.checked })
+              }
             />
             <span>Email notifications</span>
           </label>
@@ -74,7 +106,9 @@ export default function SettingsPage() {
             <input
               type="checkbox"
               checked={pushNotifications}
-              onChange={(event) => setPushNotifications(event.target.checked)}
+              onChange={(event) =>
+                void onToggleNotifications({ push: event.target.checked })
+              }
             />
             <span>Push notifications</span>
           </label>
@@ -110,6 +144,16 @@ export default function SettingsPage() {
               className="h-10 w-full rounded-lg border border-input bg-background px-3"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
+            />
+          </label>
+
+          <label className="space-y-1 text-sm">
+            <span>Confirm new password</span>
+            <input
+              type="password"
+              className="h-10 w-full rounded-lg border border-input bg-background px-3"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
             />
           </label>
         </div>

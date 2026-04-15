@@ -14,6 +14,7 @@ import { getApiErrorMessage } from '@/lib/api/error-message'
 import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import { extractLoginPayload } from '@/lib/auth/normalize-auth'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import { persistTempToken } from '@/lib/auth/temp-token'
 import { persistSession } from '@/lib/auth/token-storage'
 import { env } from '@/lib/env'
 import { cn } from '@/lib/utils'
@@ -52,6 +53,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     const error = searchParams.get('error')
+    const reset = searchParams.get('reset')
+
+    if (reset === '1') {
+      toast.success(
+        'Password reset successful. Please sign in with your new password.',
+      )
+    }
+
     if (error) {
       toast.error(error)
     }
@@ -67,6 +76,7 @@ export default function LoginPage() {
       }
 
       if (loginPayload.requiresTwoFactor) {
+        persistTempToken(loginPayload.tempToken)
         dispatch(setLoginOutcome(loginPayload))
         toast.success('Two-factor verification required')
         router.push(`/${locale}/auth/2fa/challenge`)

@@ -5,6 +5,7 @@ import {
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react'
 
+import { clearPersistedTempToken } from '@/lib/auth/temp-token'
 import {
   clearSession,
   getStoredAccessToken,
@@ -79,7 +80,16 @@ export const baseQueryWithReauth: BaseQueryFn<
 
   if (refreshResult.error) {
     clearSession()
+    clearPersistedTempToken()
     api.dispatch(clearAuthState())
+
+    if (typeof window !== 'undefined') {
+      const locale =
+        window.location.pathname.split('/').filter(Boolean)[0] ||
+        env.defaultLocale
+      window.location.replace(`/${locale}/auth/login`)
+    }
+
     return result
   }
 
@@ -89,7 +99,16 @@ export const baseQueryWithReauth: BaseQueryFn<
 
   if (!accessToken) {
     clearSession()
+    clearPersistedTempToken()
     api.dispatch(clearAuthState())
+
+    if (typeof window !== 'undefined') {
+      const locale =
+        window.location.pathname.split('/').filter(Boolean)[0] ||
+        env.defaultLocale
+      window.location.replace(`/${locale}/auth/login`)
+    }
+
     return result
   }
 

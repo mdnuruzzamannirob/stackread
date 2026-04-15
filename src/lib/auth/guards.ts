@@ -4,9 +4,32 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import {
+  clearPersistedTempToken,
+  getPersistedTempToken,
+} from '@/lib/auth/temp-token'
 import { getStoredAccessToken } from '@/lib/auth/token-storage'
-import { clearAuthState } from '@/store/features/auth/authSlice'
+import { env } from '@/lib/env'
+import {
+  clearAuthState,
+  clearTempToken,
+  setTempToken,
+} from '@/store/features/auth/authSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
+
+async function hasAuthenticatedCookieSession() {
+  try {
+    const response = await fetch(`${env.apiBaseUrl}/auth/me`, {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
 
 export function useRedirectAuthenticated(locale: string) {
   const router = useRouter()
@@ -26,7 +49,28 @@ export function useRedirectAuthenticated(locale: string) {
       if (token) {
         dispatch(clearAuthState())
       }
-      return
+
+      let isMounted = true
+
+      void (async () => {
+        const isAuthenticatedByCookie = await hasAuthenticatedCookieSession()
+
+        if (!isMounted || !isAuthenticatedByCookie) {
+          return
+        }
+
+        const destination = await resolveAuthenticatedDestination({ locale })
+
+        if (!isMounted) {
+          return
+        }
+
+        router.replace(destination)
+      })()
+
+      return () => {
+        isMounted = false
+      }
     }
 
     if (!token) {
@@ -60,6 +104,7 @@ export function useRedirectAuthenticated(locale: string) {
 
 export function useRequireTempToken(locale: string) {
   const router = useRouter()
+  const dispatch = useAppDispatch()
   const isHydrated = useAppSelector((state) => state.auth.isHydrated)
   const tempToken = useAppSelector((state) => state.auth.tempToken)
 
@@ -69,7 +114,15 @@ export function useRequireTempToken(locale: string) {
     }
 
     if (!tempToken) {
+      const persisted = getPersistedTempToken()
+      if (persisted) {
+        dispatch(setTempToken(persisted))
+        return
+      }
+
+      clearPersistedTempToken()
+      dispatch(clearTempToken())
       router.replace(`/${locale}/auth/login`)
     }
-  }, [isHydrated, locale, router, tempToken])
+  }, [dispatch, isHydrated, locale, router, tempToken])
 }

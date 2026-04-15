@@ -9,12 +9,13 @@ type MeResponse = {
   isEmailVerified?: boolean
 }
 
-export async function fetchOnboardingStatus(accessToken: string) {
+export async function fetchOnboardingStatus(accessToken?: string | null) {
   const response = await fetch(`${env.apiBaseUrl}/onboarding/status`, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     cache: 'no-store',
   })
 
@@ -32,12 +33,13 @@ export async function fetchOnboardingStatus(accessToken: string) {
   return null
 }
 
-async function fetchMe(accessToken: string) {
+async function fetchMe(accessToken?: string | null) {
   const response = await fetch(`${env.apiBaseUrl}/auth/me`, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     cache: 'no-store',
   })
 
@@ -67,7 +69,7 @@ export async function resolveAuthenticatedDestination({
   accessToken,
   locale,
 }: {
-  accessToken: string
+  accessToken?: string | null
   locale: string
 }) {
   const me = await fetchMe(accessToken)

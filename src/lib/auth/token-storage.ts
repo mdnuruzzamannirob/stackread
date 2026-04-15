@@ -1,45 +1,34 @@
 'use client'
 
-import { env } from '@/lib/env'
-
 type PersistSessionInput = {
   accessToken: string
   refreshToken?: string
 }
 
+const ACCESS_TOKEN_STORAGE_KEY = 'stackread_access_token'
+
 export function persistSession({ accessToken }: PersistSessionInput) {
-  document.cookie = `${env.sessionCookieName}=${accessToken}; Path=/; SameSite=Lax`
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken)
 }
 
 export function clearSession() {
-  document.cookie = `${env.sessionCookieName}=; Path=/; Max-Age=0; SameSite=Lax`
-}
-
-function readCookieValue(name: string): string | null {
-  if (typeof document === 'undefined') {
-    return null
+  if (typeof window === 'undefined') {
+    return
   }
 
-  const encodedName = encodeURIComponent(name)
-  const cookiePart = document.cookie
-    .split('; ')
-    .find((cookieItem) => cookieItem.startsWith(`${encodedName}=`))
-
-  if (!cookiePart) {
-    return null
-  }
-
-  const rawValue = cookiePart.slice(encodedName.length + 1)
-
-  try {
-    return decodeURIComponent(rawValue)
-  } catch {
-    return rawValue
-  }
+  window.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
 }
 
 export function getStoredAccessToken() {
-  return readCookieValue(env.sessionCookieName)
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return window.sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)
 }
 
 export function getStoredRefreshToken() {

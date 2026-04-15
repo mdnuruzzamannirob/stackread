@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
       await forgotPassword({ email }).unwrap()
       toast.success('Reset OTP sent')
       router.push(
-        `/${locale}/auth/reset-password?email=${encodeURIComponent(email)}`,
+        `/${locale}/auth/verify-otp?email=${encodeURIComponent(email)}`,
       )
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Could not send reset OTP'))
