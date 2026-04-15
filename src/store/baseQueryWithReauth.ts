@@ -5,7 +5,6 @@ import {
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react'
 
-import { routing } from '@/i18n/routing'
 import {
   clearSession,
   getStoredAccessToken,
@@ -16,6 +15,27 @@ import {
   clearAuthState,
   setHydratedToken,
 } from '@/store/features/auth/authSlice'
+
+const PUBLIC_AUTH_ENDPOINTS = new Set([
+  '/auth/register',
+  '/auth/login',
+  '/auth/2fa/challenge',
+  '/auth/2fa/email/send',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+  '/auth/forgot-password',
+  '/auth/resend-reset-otp',
+  '/auth/verify-reset-otp',
+  '/auth/reset-password',
+])
+
+const getRequestPath = (args: string | FetchArgs): string => {
+  if (typeof args === 'string') {
+    return args
+  }
+
+  return args.url
+}
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: env.apiBaseUrl,
@@ -33,40 +53,18 @@ const rawBaseQuery = fetchBaseQuery({
   },
 })
 
-function getLocaleFromPath(pathname: string | null) {
-  if (!pathname) {
-    return env.defaultLocale
-  }
-
-  const [firstSegment] = pathname.split('/').filter(Boolean)
-
-  if (
-    firstSegment &&
-    routing.locales.includes(firstSegment as (typeof routing.locales)[number])
-  ) {
-    return firstSegment
-  }
-
-  return env.defaultLocale
-}
-
-function hardRedirectToLogin() {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  const locale = getLocaleFromPath(window.location.pathname)
-  window.location.replace(`/${locale}/auth/login`)
-}
-
 export const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  const requestPath = getRequestPath(args)
+  const shouldSkipRefreshRetry =
+    requestPath === '/auth/refresh' || PUBLIC_AUTH_ENDPOINTS.has(requestPath)
+
   let result = await rawBaseQuery(args, api, extraOptions)
 
-  if (result.error?.status !== 401) {
+  if (result.error?.status !== 401 || shouldSkipRefreshRetry) {
     return result
   }
 
@@ -82,7 +80,6 @@ export const baseQueryWithReauth: BaseQueryFn<
   if (refreshResult.error) {
     clearSession()
     api.dispatch(clearAuthState())
-    hardRedirectToLogin()
     return result
   }
 
@@ -93,7 +90,6 @@ export const baseQueryWithReauth: BaseQueryFn<
   if (!accessToken) {
     clearSession()
     api.dispatch(clearAuthState())
-    hardRedirectToLogin()
     return result
   }
 

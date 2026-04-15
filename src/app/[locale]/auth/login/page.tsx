@@ -17,7 +17,7 @@ import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import { persistSession } from '@/lib/auth/token-storage'
 import { env } from '@/lib/env'
 import { cn } from '@/lib/utils'
-import { useLoginMutation } from '@/store/features/auth/authApi'
+import { useLazyMeQuery, useLoginMutation } from '@/store/features/auth/authApi'
 import {
   setAuthenticatedSession,
   setLoginOutcome,
@@ -25,7 +25,7 @@ import {
 import { useAppDispatch } from '@/store/hooks'
 
 const loginSchema = z.object({
-  email: z.email(),
+  email: z.string().email(),
   password: z.string().min(8),
 })
 
@@ -40,6 +40,7 @@ export default function LoginPage() {
   useRedirectAuthenticated(locale)
 
   const [login, { isLoading }] = useLoginMutation()
+  const [loadMe] = useLazyMeQuery()
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -77,10 +78,12 @@ export default function LoginPage() {
         refreshToken: loginPayload.refreshToken,
       })
 
+      const meResponse = await loadMe().unwrap()
+
       dispatch(
         setAuthenticatedSession({
           token: loginPayload.accessToken,
-          user: loginPayload.user,
+          user: meResponse.data,
         }),
       )
 

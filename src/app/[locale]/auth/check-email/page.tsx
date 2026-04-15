@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -75,6 +76,15 @@ export default function CheckEmailPage() {
 
       <p className="mt-4 text-sm text-muted-foreground">
         Locale: {locale.toUpperCase()}
+      </p>
+      <p className="mt-2 text-sm">
+        Already got a token?{' '}
+        <Link
+          href={`/${locale}/auth/verify-email`}
+          className="text-primary underline-offset-4 hover:underline"
+        >
+          Verify email now
+        </Link>
       </p>
     </AuthCard>
   )

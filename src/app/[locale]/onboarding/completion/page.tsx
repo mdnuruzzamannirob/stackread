@@ -7,18 +7,35 @@ import { toast } from 'sonner'
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
-import { useCompleteOnboardingMutation } from '@/store/features/onboarding/onboardingApi'
+import {
+  useCompleteOnboardingMutation,
+  useGetOnboardingPlansQuery,
+  useGetOnboardingStatusQuery,
+} from '@/store/features/onboarding/onboardingApi'
 
 export default function OnboardingCompletionPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
   const searchParams = useSearchParams()
-  const paymentRequired = searchParams.get('paymentRequired') === '1'
+  const paymentRequiredFromQuery = searchParams.get('paymentRequired') === '1'
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { data: plansResponse } = useGetOnboardingPlansQuery()
+  const { data: statusResponse } = useGetOnboardingStatusQuery()
   const [completeOnboardingMutation] = useCompleteOnboardingMutation()
 
+  const plans = plansResponse?.data ?? []
+  const selectedPlanCode = statusResponse?.data?.selectedPlanCode
+  const selectedPlan = plans.find((plan) => plan.code === selectedPlanCode)
+  const isPaidPlan = Boolean(selectedPlan?.isPaid)
+  const paymentRequired = paymentRequiredFromQuery || isPaidPlan
+
   const handleCompleteOnboarding = async () => {
+    if (paymentRequired) {
+      toast.error('Paid plans require payment completion before onboarding.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -44,16 +61,21 @@ export default function OnboardingCompletionPage() {
     >
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          This final step stores your onboarding state and unlocks the
-          dashboard.
+          {paymentRequired
+            ? 'Payment is required for this selected plan. You cannot complete onboarding until payment is done.'
+            : 'This final step stores your onboarding state and unlocks the dashboard.'}
         </p>
         <Button
           type="button"
           className="w-full"
           onClick={() => void handleCompleteOnboarding()}
-          disabled={isSubmitting}
+          disabled={isSubmitting || paymentRequired}
         >
-          {isSubmitting ? 'Completing...' : 'Complete onboarding'}
+          {paymentRequired
+            ? 'Payment required'
+            : isSubmitting
+              ? 'Completing...'
+              : 'Complete onboarding'}
         </Button>
       </div>
     </AuthCard>

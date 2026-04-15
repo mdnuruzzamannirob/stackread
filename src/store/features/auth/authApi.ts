@@ -1,6 +1,14 @@
 import type { ApiEnvelope } from '@/lib/api/types'
 import { baseApi } from '@/store/baseApi'
-import type { LoginPayload, UserProfile } from '@/store/features/auth/types'
+import type {
+  LoginHistoryRow,
+  LoginPayload,
+  RegisterResponse,
+  TwoFactorBackupCodesPayload,
+  TwoFactorSetupPayload,
+  UserProfile,
+  UserSessionPayload,
+} from '@/store/features/auth/types'
 
 type RegisterBody = {
   firstName: string
@@ -19,7 +27,6 @@ type VerifyEmailBody = { token: string }
 type EmailBody = { email: string }
 type VerifyResetOtpBody = { email: string; otp: string }
 type ResetPasswordBody = { resetToken: string; newPassword: string }
-type ChallengeBody = { tempToken: string; otp: string }
 type TempTokenBody = { tempToken: string }
 type UpdateMeBody = {
   firstName?: string
@@ -43,51 +50,16 @@ type UpdateNotificationPreferencesBody = {
   push?: boolean
 }
 
-type RegisterResponse = {
-  user: UserProfile
-  tokens: {
-    accessToken: string
-    refreshToken: string
-  }
+type TwoFactorChallengeBody = {
+  tempToken: string
+  otp?: string
+  emailOtp?: string
 }
-
-type AuthSession = {
-  accessToken: string
-  refreshToken: string
-  user: UserProfile
-}
-
-type ChallengeResponse = AuthSession
 
 type RefreshResponse = { accessToken: string }
 
-type LoginHistoryRow = {
-  id: string
-  ip?: string
-  userAgent?: string
-  createdAt: string
-}
-
-type MeResponse = {
-  id: string
-  firstName: string
-  lastName?: string
-  email: string
-  countryCode?: string
-  phone?: string
-  profilePicture?: string
-  provider?: 'local' | 'google' | 'facebook'
-  isEmailVerified?: boolean
-  isSuspended?: boolean
-  twoFactorEnabled?: boolean
-  notificationPreferences?: {
-    email?: boolean
-    push?: boolean
-  }
-  lastLoginAt?: string
-  createdAt?: string
-  updatedAt?: string
-}
+type SuccessResponse = { success: true }
+type SentResponse = { sent: true }
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -106,40 +78,28 @@ export const authApi = baseApi.injectEndpoints({
         body,
       }),
     }),
-    verifyEmail: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
-      VerifyEmailBody
-    >({
+    verifyEmail: builder.mutation<ApiEnvelope<null>, VerifyEmailBody>({
       query: (body) => ({
         url: '/auth/verify-email',
         method: 'POST',
         body,
       }),
     }),
-    resendVerification: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
-      EmailBody
-    >({
+    resendVerification: builder.mutation<ApiEnvelope<null>, EmailBody>({
       query: (body) => ({
         url: '/auth/resend-verification',
         method: 'POST',
         body,
       }),
     }),
-    forgotPassword: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
-      EmailBody
-    >({
+    forgotPassword: builder.mutation<ApiEnvelope<SentResponse>, EmailBody>({
       query: (body) => ({
         url: '/auth/forgot-password',
         method: 'POST',
         body,
       }),
     }),
-    resendResetOtp: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
-      EmailBody
-    >({
+    resendResetOtp: builder.mutation<ApiEnvelope<SentResponse>, EmailBody>({
       query: (body) => ({
         url: '/auth/resend-reset-otp',
         method: 'POST',
@@ -157,7 +117,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
     resetPassword: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
+      ApiEnvelope<SuccessResponse>,
       ResetPasswordBody
     >({
       query: (body) => ({
@@ -167,7 +127,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
     sendTwoFactorEmailOtp: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
+      ApiEnvelope<SentResponse>,
       TempTokenBody
     >({
       query: (body) => ({
@@ -177,8 +137,8 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
     challengeTwoFactor: builder.mutation<
-      ApiEnvelope<ChallengeResponse>,
-      ChallengeBody
+      ApiEnvelope<UserSessionPayload>,
+      TwoFactorChallengeBody
     >({
       query: (body) => ({
         url: '/auth/2fa/challenge',
@@ -187,8 +147,49 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Auth'],
     }),
+    enableTwoFactor: builder.mutation<ApiEnvelope<TwoFactorSetupPayload>, void>(
+      {
+        query: () => ({
+          url: '/auth/2fa/enable',
+          method: 'POST',
+        }),
+        invalidatesTags: ['Auth'],
+      },
+    ),
+    verifyTwoFactor: builder.mutation<
+      ApiEnvelope<SuccessResponse>,
+      { otp: string }
+    >({
+      query: (body) => ({
+        url: '/auth/2fa/verify',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+    disableTwoFactor: builder.mutation<
+      ApiEnvelope<SuccessResponse>,
+      { otp: string }
+    >({
+      query: (body) => ({
+        url: '/auth/2fa/disable',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+    getTwoFactorBackupCodesCount: builder.query<
+      ApiEnvelope<TwoFactorBackupCodesPayload>,
+      { otp: string }
+    >({
+      query: ({ otp }) => ({
+        url: `/auth/2fa/backup-codes?otp=${encodeURIComponent(otp)}`,
+        method: 'GET',
+      }),
+      providesTags: ['Auth'],
+    }),
     logout: builder.mutation<
-      ApiEnvelope<{ success: boolean }> | ApiEnvelope<null>,
+      ApiEnvelope<SuccessResponse> | ApiEnvelope<null>,
       void
     >({
       query: () => ({
@@ -210,14 +211,14 @@ export const authApi = baseApi.injectEndpoints({
       }),
       providesTags: ['Auth'],
     }),
-    me: builder.query<ApiEnvelope<MeResponse>, void>({
+    me: builder.query<ApiEnvelope<UserProfile>, void>({
       query: () => ({
         url: '/auth/me',
         method: 'GET',
       }),
       providesTags: ['Auth'],
     }),
-    updateMe: builder.mutation<ApiEnvelope<MeResponse>, UpdateMeBody>({
+    updateMe: builder.mutation<ApiEnvelope<UserProfile>, UpdateMeBody>({
       query: (body) => ({
         url: '/auth/me',
         method: 'PATCH',
@@ -225,10 +226,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Auth'],
     }),
-    changeMyPassword: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
-      ChangePasswordBody
-    >({
+    changeMyPassword: builder.mutation<ApiEnvelope<null>, ChangePasswordBody>({
       query: (body) => ({
         url: '/auth/me/password',
         method: 'PATCH',
@@ -236,7 +234,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
     updateMyNotificationPreferences: builder.mutation<
-      ApiEnvelope<{ success: boolean }>,
+      ApiEnvelope<UserProfile>,
       UpdateNotificationPreferencesBody
     >({
       query: (body) => ({
@@ -260,9 +258,15 @@ export const {
   useResetPasswordMutation,
   useSendTwoFactorEmailOtpMutation,
   useChallengeTwoFactorMutation,
+  useEnableTwoFactorMutation,
+  useVerifyTwoFactorMutation,
+  useDisableTwoFactorMutation,
+  useGetTwoFactorBackupCodesCountQuery,
+  useLazyGetTwoFactorBackupCodesCountQuery,
   useLogoutMutation,
   useRefreshMutation,
   useLoginHistoryQuery,
+  useLazyMeQuery,
   useMeQuery,
   useUpdateMeMutation,
   useChangeMyPasswordMutation,

@@ -25,19 +25,18 @@ export function extractLoginPayload(input: unknown): LoginPayload | null {
 
   const accessToken =
     typeof payload.accessToken === 'string' ? payload.accessToken : null
-  const user = (payload.user ?? null) as UserProfile | null
+  const refreshToken =
+    typeof payload.refreshToken === 'string' ? payload.refreshToken : null
+  const user = parseUserFromUnknown(payload.user)
 
-  if (!accessToken || !user) {
+  if (!accessToken || !refreshToken || !user) {
     return null
   }
 
   return {
     requiresTwoFactor: false,
     accessToken,
-    refreshToken:
-      typeof payload.refreshToken === 'string'
-        ? payload.refreshToken
-        : undefined,
+    refreshToken,
     user,
   }
 }
@@ -50,7 +49,7 @@ export function extractRegisterSession(
   }
 
   const payload = input as AnyRecord
-  const user = (payload.user ?? null) as UserProfile | null
+  const user = parseUserFromUnknown(payload.user)
   const tokens = (payload.tokens ?? null) as {
     accessToken?: string
     refreshToken?: string
@@ -77,7 +76,7 @@ export function extractSession(
   const payload = input as AnyRecord
   const accessToken =
     typeof payload.accessToken === 'string' ? payload.accessToken : null
-  const user = (payload.user ?? null) as UserProfile | null
+  const user = parseUserFromUnknown(payload.user)
 
   if (!accessToken || !user) {
     return null
@@ -97,6 +96,87 @@ function parseBoolean(value: string | null) {
   return value === 'true' || value === '1'
 }
 
+function parseUserFromUnknown(input: unknown): UserProfile | null {
+  if (!input || typeof input !== 'object') {
+    return null
+  }
+
+  const candidate = input as Record<string, unknown>
+  const id = typeof candidate.id === 'string' ? candidate.id : null
+  const email = typeof candidate.email === 'string' ? candidate.email : null
+  const firstName =
+    typeof candidate.firstName === 'string' ? candidate.firstName : null
+
+  if (!id || !email || !firstName) {
+    return null
+  }
+
+  return {
+    id,
+    email,
+    firstName,
+    lastName:
+      typeof candidate.lastName === 'string' ? candidate.lastName : undefined,
+    countryCode:
+      typeof candidate.countryCode === 'string'
+        ? candidate.countryCode
+        : undefined,
+    phone: typeof candidate.phone === 'string' ? candidate.phone : undefined,
+    profilePicture:
+      typeof candidate.profilePicture === 'string'
+        ? candidate.profilePicture
+        : undefined,
+    provider:
+      candidate.provider === 'local' ||
+      candidate.provider === 'google' ||
+      candidate.provider === 'facebook'
+        ? candidate.provider
+        : undefined,
+    isEmailVerified:
+      typeof candidate.isEmailVerified === 'boolean'
+        ? candidate.isEmailVerified
+        : undefined,
+    isSuspended:
+      typeof candidate.isSuspended === 'boolean'
+        ? candidate.isSuspended
+        : undefined,
+    twoFactorEnabled:
+      typeof candidate.twoFactorEnabled === 'boolean'
+        ? candidate.twoFactorEnabled
+        : undefined,
+    notificationPreferences:
+      candidate.notificationPreferences &&
+      typeof candidate.notificationPreferences === 'object'
+        ? {
+            email:
+              typeof (
+                candidate.notificationPreferences as Record<string, unknown>
+              ).email === 'boolean'
+                ? ((
+                    candidate.notificationPreferences as Record<string, unknown>
+                  ).email as boolean)
+                : undefined,
+            push:
+              typeof (
+                candidate.notificationPreferences as Record<string, unknown>
+              ).push === 'boolean'
+                ? ((
+                    candidate.notificationPreferences as Record<string, unknown>
+                  ).push as boolean)
+                : undefined,
+          }
+        : undefined,
+    lastLoginAt:
+      typeof candidate.lastLoginAt === 'string'
+        ? candidate.lastLoginAt
+        : undefined,
+    createdAt:
+      typeof candidate.createdAt === 'string' ? candidate.createdAt : undefined,
+    updatedAt:
+      typeof candidate.updatedAt === 'string' ? candidate.updatedAt : undefined,
+  }
+}
+
 function parseJsonUser(raw: string | null): UserProfile | null {
   if (!raw) {
     return null
@@ -108,29 +188,7 @@ function parseJsonUser(raw: string | null): UserProfile | null {
       return null
     }
 
-    const candidate = parsed as Record<string, unknown>
-    const id = typeof candidate.id === 'string' ? candidate.id : null
-    const email = typeof candidate.email === 'string' ? candidate.email : null
-    const firstName =
-      typeof candidate.firstName === 'string' ? candidate.firstName : null
-
-    if (!id || !email || !firstName) {
-      return null
-    }
-
-    return {
-      id,
-      email,
-      firstName,
-      lastName:
-        typeof candidate.lastName === 'string' ? candidate.lastName : undefined,
-      provider:
-        candidate.provider === 'local' ||
-        candidate.provider === 'google' ||
-        candidate.provider === 'facebook'
-          ? candidate.provider
-          : undefined,
-    }
+    return parseUserFromUnknown(parsed)
   } catch {
     return null
   }
@@ -163,22 +221,12 @@ export function parseOAuthCallbackParams(searchParams: URLSearchParams): {
 
   const jsonUser = parseJsonUser(searchParams.get('user'))
 
-  const user: UserProfile = jsonUser ?? {
-    id: searchParams.get('id') ?? 'oauth-user',
-    email: searchParams.get('email') ?? '',
-    firstName:
-      searchParams.get('firstName') ?? searchParams.get('name') ?? 'User',
-    lastName: searchParams.get('lastName') ?? '',
-    provider:
-      (searchParams.get('provider') as UserProfile['provider']) ?? 'google',
-  }
-
   return {
     accessToken,
     refreshToken,
     tempToken,
     requiresTwoFactor,
-    user,
+    user: jsonUser,
     error,
   }
 }

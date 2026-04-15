@@ -13,6 +13,7 @@ import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import { persistSession } from '@/lib/auth/token-storage'
 import {
   useChallengeTwoFactorMutation,
+  useLazyMeQuery,
   useSendTwoFactorEmailOtpMutation,
 } from '@/store/features/auth/authApi'
 import { setAuthenticatedSession } from '@/store/features/auth/authSlice'
@@ -30,6 +31,7 @@ export default function TwoFactorChallengePage() {
   const [otpError, setOtpError] = useState<string | null>(null)
 
   const [challengeTwoFactor, { isLoading }] = useChallengeTwoFactorMutation()
+  const [loadMe] = useLazyMeQuery()
   const [sendEmailOtp, { isLoading: isSending }] =
     useSendTwoFactorEmailOtpMutation()
 
@@ -73,10 +75,12 @@ export default function TwoFactorChallengePage() {
         accessToken: session.accessToken,
         refreshToken: session.refreshToken,
       })
+      const meResponse = await loadMe().unwrap()
+
       dispatch(
         setAuthenticatedSession({
           token: session.accessToken,
-          user: session.user,
+          user: meResponse.data,
         }),
       )
 

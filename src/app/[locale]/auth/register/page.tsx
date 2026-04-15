@@ -14,7 +14,10 @@ import { useRedirectAuthenticated } from '@/lib/auth/guards'
 import { extractRegisterSession } from '@/lib/auth/normalize-auth'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import { persistSession } from '@/lib/auth/token-storage'
-import { useRegisterMutation } from '@/store/features/auth/authApi'
+import {
+  useLazyMeQuery,
+  useRegisterMutation,
+} from '@/store/features/auth/authApi'
 import { setAuthenticatedSession } from '@/store/features/auth/authSlice'
 import { useAppDispatch } from '@/store/hooks'
 
@@ -35,6 +38,7 @@ export default function RegisterPage() {
   const dispatch = useAppDispatch()
   useRedirectAuthenticated(locale)
   const [register, { isLoading }] = useRegisterMutation()
+  const [loadMe] = useLazyMeQuery()
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -65,10 +69,12 @@ export default function RegisterPage() {
         refreshToken: session.refreshToken,
       })
 
+      const meResponse = await loadMe().unwrap()
+
       dispatch(
         setAuthenticatedSession({
           token: session.accessToken,
-          user: session.user,
+          user: meResponse.data,
         }),
       )
 

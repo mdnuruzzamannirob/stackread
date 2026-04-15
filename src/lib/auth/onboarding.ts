@@ -5,6 +5,10 @@ type OnboardingStatusResponse = {
   status?: AuthState['onboardingStatus']
 }
 
+type MeResponse = {
+  isEmailVerified?: boolean
+}
+
 export async function fetchOnboardingStatus(accessToken: string) {
   const response = await fetch(`${env.apiBaseUrl}/onboarding/status`, {
     headers: {
@@ -28,6 +32,23 @@ export async function fetchOnboardingStatus(accessToken: string) {
   return null
 }
 
+async function fetchMe(accessToken: string) {
+  const response = await fetch(`${env.apiBaseUrl}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  const json = (await response.json()) as { data?: MeResponse }
+  return json.data ?? null
+}
+
 export function resolvePostAuthDestination({
   locale,
   onboardingStatus,
@@ -49,6 +70,12 @@ export async function resolveAuthenticatedDestination({
   accessToken: string
   locale: string
 }) {
+  const me = await fetchMe(accessToken)
+
+  if (me && !me.isEmailVerified) {
+    return `/${locale}/auth/check-email`
+  }
+
   const onboardingStatus = await fetchOnboardingStatus(accessToken)
   return resolvePostAuthDestination({ locale, onboardingStatus })
 }

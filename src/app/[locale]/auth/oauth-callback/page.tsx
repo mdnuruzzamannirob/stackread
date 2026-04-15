@@ -8,6 +8,7 @@ import { AuthCard } from '@/components/layout/auth-card'
 import { parseOAuthCallbackParams } from '@/lib/auth/normalize-auth'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import { persistSession } from '@/lib/auth/token-storage'
+import { useLazyMeQuery } from '@/store/features/auth/authApi'
 import {
   setAuthenticatedSession,
   setLoginOutcome,
@@ -20,16 +21,11 @@ export default function OAuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const dispatch = useAppDispatch()
+  const [loadMe] = useLazyMeQuery()
 
   useEffect(() => {
-    const {
-      accessToken,
-      refreshToken,
-      tempToken,
-      requiresTwoFactor,
-      user,
-      error,
-    } = parseOAuthCallbackParams(searchParams)
+    const { accessToken, refreshToken, tempToken, requiresTwoFactor, error } =
+      parseOAuthCallbackParams(searchParams)
 
     if (error) {
       toast.error(error)
@@ -52,32 +48,40 @@ export default function OAuthCallbackPage() {
 
     if (!accessToken) {
       toast.error('OAuth callback did not return an access token')
+      router.replace(`/${locale}/auth/login`)
       return
     }
 
-    persistSession({ accessToken, refreshToken: refreshToken ?? undefined })
-    const resolvedUser = user ?? {
-      id: 'oauth-user',
-      email: '',
-      firstName: 'User',
-      provider: 'google' as const,
-    }
-
-    dispatch(
-      setAuthenticatedSession({
-        token: accessToken,
-        user: resolvedUser,
-      }),
-    )
-
-    toast.success('OAuth login successful')
-    void resolveAuthenticatedDestination({
+    persistSession({
       accessToken,
-      locale,
-    }).then((destination) => {
-      router.replace(destination)
+      refreshToken: refreshToken ?? undefined,
     })
-  }, [dispatch, locale, router, searchParams])
+
+    void (async () => {
+      try {
+        const meResponse = await loadMe().unwrap()
+
+        dispatch(
+          setAuthenticatedSession({
+            token: accessToken,
+            user: meResponse.data,
+          }),
+        )
+
+        toast.success('OAuth login successful')
+
+        const destination = await resolveAuthenticatedDestination({
+          accessToken,
+          locale,
+        })
+
+        router.replace(destination)
+      } catch {
+        toast.error('Unable to finalize OAuth session')
+        router.replace(`/${locale}/auth/login`)
+      }
+    })()
+  }, [dispatch, loadMe, locale, router, searchParams])
 
   return (
     <AuthCard title="OAuth callback" subtitle="Finalizing your session...">

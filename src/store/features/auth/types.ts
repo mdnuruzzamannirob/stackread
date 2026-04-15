@@ -19,6 +19,11 @@ export type UserProfile = {
   updatedAt?: string
 }
 
+export type UserNotificationPreferences = {
+  email?: boolean
+  push?: boolean
+}
+
 export type AuthState = {
   actorType: 'user'
   token: string | null
@@ -30,10 +35,20 @@ export type AuthState = {
   twoFactorEnabled: boolean
 }
 
+export type AuthTokens = {
+  accessToken: string
+  refreshToken: string
+}
+
+export type RegisterResponse = {
+  user: UserProfile
+  tokens: AuthTokens
+}
+
 export type LoginSuccessPayload = {
   requiresTwoFactor: false
   accessToken: string
-  refreshToken?: string
+  refreshToken: string
   user: UserProfile
 }
 
@@ -43,3 +58,26 @@ export type LoginTwoFactorPayload = {
 }
 
 export type LoginPayload = LoginSuccessPayload | LoginTwoFactorPayload
+
+export type UserSessionPayload = {
+  accessToken: string
+  refreshToken?: string
+  user: UserProfile
+}
+
+export type TwoFactorSetupPayload = {
+  secret: string
+  qrCodeUrl: string
+  backupCodes: string[]
+}
+
+export type TwoFactorBackupCodesPayload = {
+  remainingBackupCodes: number
+}
+
+export type LoginHistoryRow = {
+  id: string
+  ipAddress?: string
+  userAgent?: string
+  createdAt: string
+}

@@ -12,10 +12,9 @@ export type OnboardingPlan = {
 export type OnboardingStatus = 'pending' | 'selected' | 'completed'
 
 export type OnboardingStatusResponse = {
-  status?: OnboardingStatus
+  status: OnboardingStatus
   selectedPlanCode?: string
-  selectedPlanName?: string
-  selectedPlanPrice?: number
+  completedAt?: string
 }
 
 export type SelectOnboardingPlanBody = {
@@ -23,16 +22,21 @@ export type SelectOnboardingPlanBody = {
 }
 
 export type CompleteOnboardingBody = {
-  agreeToTerms?: boolean
+  agreeToTerms: true
 }
 
 export type CompleteOnboardingResponse = {
-  status?: OnboardingStatus
+  id: string
+  status: OnboardingStatus
+  completedAt: string
+  selectedPlanCode: string
 }
 
 export type SelectOnboardingPlanResponse = {
-  status?: OnboardingStatus
-  nextStep?: 'redirect_to_payment' | 'complete_onboarding'
+  id: string
+  plan: OnboardingPlan
+  status: OnboardingStatus
+  nextStep: 'redirect_to_payment' | 'complete_onboarding'
 }
 
 export const onboardingApi = baseApi.injectEndpoints({
