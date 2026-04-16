@@ -26,12 +26,14 @@ export default function OnboardingPlanSelectionPage() {
     useSelectOnboardingPlanMutation()
 
   const plans = Array.isArray(plansResponse?.data) ? plansResponse.data : []
+  const onboardingStatus = statusResponse?.data?.status ?? 'pending'
+  const selectedPlanCodeFromServer = statusResponse?.data?.selectedPlanCode
 
   useEffect(() => {
-    if (statusResponse?.data?.status === 'completed') {
+    if (onboardingStatus === 'completed') {
       router.replace(`/${locale}/dashboard`)
     }
-  }, [locale, router, statusResponse?.data?.status])
+  }, [locale, onboardingStatus, router])
 
   const selectPlan = async (planCode: string) => {
     setSelectedPlanCode(planCode)
@@ -39,7 +41,7 @@ export default function OnboardingPlanSelectionPage() {
     try {
       const response = await selectOnboardingPlan({ planCode }).unwrap()
       const nextStep = response.data?.nextStep
-      const checkoutUrl = response.data?.checkout_url
+      const checkoutUrl = response.data?.checkout_url ?? response.data?.url
 
       toast.success('Plan selected')
 
@@ -67,6 +69,13 @@ export default function OnboardingPlanSelectionPage() {
       title="Choose a plan"
       subtitle="Select the onboarding plan that fits your account."
     >
+      {onboardingStatus !== 'completed' ? (
+        <div className="mb-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          {onboardingStatus === 'selected'
+            ? 'Your plan has already been selected. Complete the payment step to finish onboarding.'
+            : 'Onboarding is not complete yet. Choose a plan to continue.'}
+        </div>
+      ) : null}
       {isPlansLoading ? (
         <p className="text-sm text-muted-foreground">Loading plans...</p>
       ) : (
@@ -83,6 +92,11 @@ export default function OnboardingPlanSelectionPage() {
                     {plan.isPaid ? 'Paid plan' : 'Free plan'} ·{' '}
                     {plan.billingCycle}
                   </p>
+                  {selectedPlanCodeFromServer === plan.code ? (
+                    <p className="mt-1 text-xs font-medium uppercase tracking-wide text-primary">
+                      Selected on server
+                    </p>
+                  ) : null}
                 </div>
                 <p className="text-right text-lg font-semibold">
                   {plan.price === 0 ? 'Free' : `৳${plan.price}`}

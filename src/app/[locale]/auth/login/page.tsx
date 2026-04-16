@@ -18,7 +18,7 @@ import { persistTempToken } from '@/lib/auth/temp-token'
 import { persistSession } from '@/lib/auth/token-storage'
 import { env } from '@/lib/env'
 import { cn } from '@/lib/utils'
-import { useLazyMeQuery, useLoginMutation } from '@/store/features/auth/authApi'
+import { useLoginMutation } from '@/store/features/auth/authApi'
 import {
   setAuthenticatedSession,
   setLoginOutcome,
@@ -41,7 +41,6 @@ export default function LoginPage() {
   useRedirectAuthenticated(locale)
 
   const [login, { isLoading }] = useLoginMutation()
-  const [loadMe] = useLazyMeQuery()
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -88,12 +87,10 @@ export default function LoginPage() {
         refreshToken: loginPayload.refreshToken,
       })
 
-      const meResponse = await loadMe().unwrap()
-
       dispatch(
         setAuthenticatedSession({
           token: loginPayload.accessToken,
-          user: meResponse.data,
+          user: loginPayload.user,
         }),
       )
 

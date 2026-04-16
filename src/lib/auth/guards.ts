@@ -3,33 +3,21 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import {
+  fetchOnboardingStatus,
+  resolveAuthenticatedDestination,
+} from '@/lib/auth/onboarding'
 import {
   clearPersistedTempToken,
   getPersistedTempToken,
 } from '@/lib/auth/temp-token'
 import { getStoredAccessToken } from '@/lib/auth/token-storage'
-import { env } from '@/lib/env'
 import {
   clearAuthState,
   clearTempToken,
   setTempToken,
 } from '@/store/features/auth/authSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-
-async function hasAuthenticatedCookieSession() {
-  try {
-    const response = await fetch(`${env.apiBaseUrl}/auth/me`, {
-      method: 'GET',
-      credentials: 'include',
-      cache: 'no-store',
-    })
-
-    return response.ok
-  } catch {
-    return false
-  }
-}
 
 export function useRedirectAuthenticated(locale: string) {
   const router = useRouter()
@@ -53,9 +41,9 @@ export function useRedirectAuthenticated(locale: string) {
       let isMounted = true
 
       void (async () => {
-        const isAuthenticatedByCookie = await hasAuthenticatedCookieSession()
+        const onboardingStatus = await fetchOnboardingStatus()
 
-        if (!isMounted || !isAuthenticatedByCookie) {
+        if (!isMounted || !onboardingStatus) {
           return
         }
 

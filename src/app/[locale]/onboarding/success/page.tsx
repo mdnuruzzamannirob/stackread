@@ -1,98 +1,28 @@
 'use client'
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
-import { getStoredAccessToken } from '@/lib/auth/token-storage'
-import { env } from '@/lib/env'
-import {
-  useCompleteOnboardingMutation,
-  useGetOnboardingStatusQuery,
-} from '@/store/features/onboarding/onboardingApi'
+import { useGetOnboardingStatusQuery } from '@/store/features/onboarding/onboardingApi'
 
 export default function OnboardingSuccessPage() {
+  const t = useTranslations('onboarding.success')
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [statusText, setStatusText] = useState(
-    'Waiting for Stripe to confirm your payment...',
-  )
+  const [statusText, setStatusText] = useState(t('waitingForStripe'))
   const [isFinalizing, setIsFinalizing] = useState(true)
   const hasCompletedRef = useRef(false)
-  const hasStartedCompletionRef = useRef(false)
-  const hasVerifiedPaymentRef = useRef(false)
-
-  const paymentReference = searchParams.get('ref') ?? ''
-  const stripeSessionId = searchParams.get('session_id') ?? ''
+  const paymentReference = searchParams.get('ref')
+  const stripeSessionId = searchParams.get('session_id')
 
   const { data: statusResponse, refetch } = useGetOnboardingStatusQuery()
-  const [completeOnboarding] = useCompleteOnboardingMutation()
-
-  const fetchCurrentSubscriptionStatus = async () => {
-    const accessToken = getStoredAccessToken()
-
-    const response = await fetch(`${env.apiBaseUrl}/subscriptions/my`, {
-      headers: {
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      cache: 'no-store',
-    })
-
-    if (!response.ok) {
-      return null
-    }
-
-    const json = (await response.json()) as {
-      data?: { status?: string }
-    }
-
-    return json.data?.status ?? null
-  }
-
-  const confirmStripePayment = useCallback(async () => {
-    if (
-      !paymentReference ||
-      !stripeSessionId ||
-      hasVerifiedPaymentRef.current
-    ) {
-      return false
-    }
-
-    const accessToken = getStoredAccessToken()
-
-    const response = await fetch(`${env.apiBaseUrl}/payments/verify`, {
-      method: 'POST',
-      headers: {
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        reference: paymentReference,
-        providerPaymentId: stripeSessionId,
-        status: 'success',
-      }),
-    })
-
-    if (!response.ok) {
-      const json = (await response.json().catch(() => null)) as {
-        message?: string
-      } | null
-      throw new Error(
-        json?.message ?? 'Unable to confirm Stripe payment right now.',
-      )
-    }
-
-    hasVerifiedPaymentRef.current = true
-    return true
-  }, [paymentReference, stripeSessionId])
 
   useEffect(() => {
     if (statusResponse?.data?.status === 'completed') {
@@ -119,53 +49,29 @@ export default function OnboardingSuccessPage() {
     const run = async () => {
       while (isMounted && attempts < maxAttempts && !hasCompletedRef.current) {
         attempts += 1
-        setStatusText(
-          `Checking payment confirmation... (${attempts}/${maxAttempts})`,
-        )
+        setStatusText(t('checkingPayment', { attempts, maxAttempts }))
 
         try {
-          if (
-            paymentReference &&
-            stripeSessionId &&
-            !hasVerifiedPaymentRef.current
-          ) {
-            setStatusText('Confirming payment with Stripe...')
-            await confirmStripePayment()
-          }
+          setStatusText(t('confirmingPayment'))
+          const refreshed = await refetch()
+          const onboardingStatus = refreshed.data?.data?.status ?? null
 
-          const subscriptionStatus = await fetchCurrentSubscriptionStatus()
-
-          if (subscriptionStatus !== 'active') {
+          if (onboardingStatus !== 'completed') {
             await new Promise((resolve) => {
               window.setTimeout(resolve, 3000)
             })
             continue
           }
 
-          if (!hasStartedCompletionRef.current) {
-            hasStartedCompletionRef.current = true
-            setStatusText('Payment confirmed. Finalizing onboarding...')
-            await completeOnboarding({ agreeToTerms: true }).unwrap()
-          }
-
-          await refetch()
-
           hasCompletedRef.current = true
-          setStatusText('Onboarding completed. Redirecting to dashboard...')
-          toast.success('Onboarding completed successfully.')
+          setStatusText(t('completed'))
+          toast.success(t('completedToast'))
           router.replace(`/${locale}/dashboard`)
           return
         } catch (error) {
           if (attempts >= maxAttempts) {
-            setStatusText(
-              'Payment confirmation is taking longer than expected.',
-            )
-            toast.error(
-              getApiErrorMessage(
-                error,
-                'We are still waiting for payment confirmation. Please try again in a moment.',
-              ),
-            )
+            setStatusText(t('takingLonger'))
+            toast.error(getApiErrorMessage(error, t('retryLater')))
             setIsFinalizing(false)
             return
           }
@@ -186,21 +92,24 @@ export default function OnboardingSuccessPage() {
     return () => {
       isMounted = false
     }
-  }, [
-    completeOnboarding,
-    confirmStripePayment,
-    locale,
-    paymentReference,
-    refetch,
-    router,
-    stripeSessionId,
-  ])
+  }, [t, locale, paymentReference, refetch, router, stripeSessionId])
+
+  useEffect(() => {
+    if (!paymentReference && !stripeSessionId) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setStatusText(t('returnedWaiting'))
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [paymentReference, stripeSessionId, t])
 
   return (
-    <AuthCard
-      title="Payment successful"
-      subtitle="Finalizing your onboarding and activating your plan."
-    >
+    <AuthCard title={t('title')} subtitle={t('subtitle')}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{statusText}</p>
 
@@ -210,7 +119,7 @@ export default function OnboardingSuccessPage() {
           onClick={() => window.location.reload()}
           disabled={isFinalizing}
         >
-          {isFinalizing ? 'Finalizing...' : 'Check again'}
+          {isFinalizing ? t('finalizing') : t('checkAgain')}
         </Button>
       </div>
     </AuthCard>

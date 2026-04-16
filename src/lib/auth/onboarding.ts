@@ -72,12 +72,17 @@ export async function resolveAuthenticatedDestination({
   accessToken?: string | null
   locale: string
 }) {
+  const onboardingStatus = await fetchOnboardingStatus(accessToken)
+
+  if (onboardingStatus === 'pending' || onboardingStatus === 'selected') {
+    return `/${locale}/onboarding/plan-selection`
+  }
+
   const me = await fetchMe(accessToken)
 
   if (me && !me.isEmailVerified) {
     return `/${locale}/auth/check-email`
   }
 
-  const onboardingStatus = await fetchOnboardingStatus(accessToken)
   return resolvePostAuthDestination({ locale, onboardingStatus })
 }

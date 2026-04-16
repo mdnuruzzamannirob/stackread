@@ -2,6 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/layout/auth-card'
@@ -14,6 +15,7 @@ import {
 } from '@/store/features/onboarding/onboardingApi'
 
 export default function OnboardingCompletionPage() {
+  const t = useTranslations('onboarding.completion')
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
@@ -32,7 +34,7 @@ export default function OnboardingCompletionPage() {
 
   const handleCompleteOnboarding = async () => {
     if (paymentRequired) {
-      toast.error('Paid plans require payment completion before onboarding.')
+      toast.error(t('paymentRequiredToast'))
       return
     }
 
@@ -41,10 +43,10 @@ export default function OnboardingCompletionPage() {
     try {
       await completeOnboardingMutation({ agreeToTerms: true }).unwrap()
 
-      toast.success('Onboarding completed')
+      toast.success(t('completedToast'))
       router.replace(`/${locale}/dashboard`)
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Unable to complete onboarding'))
+      toast.error(getApiErrorMessage(error, t('unableToComplete')))
     } finally {
       setIsSubmitting(false)
     }
@@ -52,18 +54,12 @@ export default function OnboardingCompletionPage() {
 
   return (
     <AuthCard
-      title="Complete onboarding"
-      subtitle={
-        paymentRequired
-          ? 'Your selected plan requires payment handling in the next phase.'
-          : 'Confirm your selection to finish setup.'
-      }
+      title={t('title')}
+      subtitle={paymentRequired ? t('subtitlePaid') : t('subtitleFree')}
     >
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          {paymentRequired
-            ? 'Payment is required for this selected plan. You cannot complete onboarding until payment is done.'
-            : 'This final step stores your onboarding state and unlocks the dashboard.'}
+          {paymentRequired ? t('paidBody') : t('freeBody')}
         </p>
         <Button
           type="button"
@@ -72,10 +68,10 @@ export default function OnboardingCompletionPage() {
           disabled={isSubmitting || paymentRequired}
         >
           {paymentRequired
-            ? 'Payment required'
+            ? t('paymentRequiredLabel')
             : isSubmitting
-              ? 'Completing...'
-              : 'Complete onboarding'}
+              ? t('completing')
+              : t('completeOnboarding')}
         </Button>
       </div>
     </AuthCard>

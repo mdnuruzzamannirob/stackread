@@ -1,3 +1,4 @@
+import { SubscriptionManagementCard } from '@/components/subscription/subscription-management-card'
 import { serverApiRequest } from '@/lib/api/server'
 import { getServerAccessToken } from '@/lib/auth/server-session'
 import Link from 'next/link'
@@ -81,6 +82,8 @@ export default async function DashboardPage({
           Rows found: {Array.isArray(history) ? history.length : 0}
         </p>
       </div>
+
+      <SubscriptionManagementCard />
     </section>
   )
 }

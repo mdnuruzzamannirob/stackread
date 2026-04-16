@@ -4,37 +4,14 @@ import { redirect } from 'next/navigation'
 import { LogoutButton } from '@/components/common/logout-button'
 import { serverApiRequest } from '@/lib/api/server'
 import { getServerAccessToken } from '@/lib/auth/server-session'
-import { env } from '@/lib/env'
 
 type OnboardingStatusResponse = {
   status?: 'pending' | 'selected' | 'completed'
 }
 
-type UserProfile = {
-  isEmailVerified?: boolean
-}
-
-async function hasValidUserSession(token: string) {
-  const response = await fetch(`${env.apiBaseUrl}/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    cache: 'no-store',
-  })
-
-  return response.ok
-}
-
 async function getOnboardingStatus(token: string) {
   return serverApiRequest<OnboardingStatusResponse>({
     path: '/onboarding/status',
-    token,
-  })
-}
-
-async function getMe(token: string) {
-  return serverApiRequest<UserProfile>({
-    path: '/auth/me',
     token,
   })
 }
@@ -53,23 +30,11 @@ export default async function ProtectedLayout({
     redirect(`/${locale}/auth/login`)
   }
 
-  const isValid = await hasValidUserSession(token)
-
-  if (!isValid) {
-    redirect(`/${locale}/auth/login`)
-  }
-
-  const me = await getMe(token)
-
-  if (!me) {
-    redirect(`/${locale}/auth/login`)
-  }
-
-  if (!me.isEmailVerified) {
-    redirect(`/${locale}/auth/check-email`)
-  }
-
   const onboarding = await getOnboardingStatus(token)
+
+  if (!onboarding) {
+    redirect(`/${locale}/auth/login`)
+  }
 
   if (onboarding?.status === 'pending' || onboarding?.status === 'selected') {
     redirect(`/${locale}/onboarding/plan-selection`)
@@ -84,6 +49,12 @@ export default async function ProtectedLayout({
             className="rounded-md border border-border px-3 py-1.5 hover:bg-accent"
           >
             Dashboard
+          </Link>
+          <Link
+            href={`/${locale}/dashboard#subscription-management`}
+            className="rounded-md border border-border px-3 py-1.5 hover:bg-accent"
+          >
+            Subscription
           </Link>
           <Link
             href={`/${locale}/profile`}

@@ -38,6 +38,8 @@ export type SelectOnboardingPlanResponse = {
   status: OnboardingStatus
   nextStep: 'redirect_to_payment' | 'onboarding_completed'
   checkout_url?: string
+  url?: string
+  sessionId?: string
   paymentId?: string
 }
 

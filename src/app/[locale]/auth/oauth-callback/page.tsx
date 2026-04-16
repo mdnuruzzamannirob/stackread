@@ -11,12 +11,8 @@ import {
   clearPersistedTempToken,
   persistTempToken,
 } from '@/lib/auth/temp-token'
-import { getStoredAccessToken, persistSession } from '@/lib/auth/token-storage'
-import { useLazyMeQuery } from '@/store/features/auth/authApi'
-import {
-  setAuthenticatedSession,
-  setLoginOutcome,
-} from '@/store/features/auth/authSlice'
+import { persistSession } from '@/lib/auth/token-storage'
+import { setLoginOutcome } from '@/store/features/auth/authSlice'
 import { useAppDispatch } from '@/store/hooks'
 
 export default function OAuthCallbackPage() {
@@ -25,7 +21,6 @@ export default function OAuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const dispatch = useAppDispatch()
-  const [loadMe] = useLazyMeQuery()
 
   useEffect(() => {
     const { accessToken, refreshToken, tempToken, requiresTwoFactor, error } =
@@ -51,31 +46,20 @@ export default function OAuthCallbackPage() {
       return
     }
 
-    if (accessToken) {
-      persistSession({
-        accessToken,
-        refreshToken: refreshToken ?? undefined,
-      })
-    }
-
     clearPersistedTempToken()
 
     void (async () => {
       try {
-        const meResponse = await loadMe().unwrap()
-        const storedToken = getStoredAccessToken()
-
-        dispatch(
-          setAuthenticatedSession({
-            token: storedToken,
-            user: meResponse.data,
-          }),
-        )
+        if (accessToken) {
+          persistSession({
+            accessToken,
+            refreshToken: refreshToken ?? undefined,
+          })
+        }
 
         toast.success('OAuth login successful')
 
         const destination = await resolveAuthenticatedDestination({
-          accessToken: storedToken,
           locale,
         })
 
@@ -85,7 +69,7 @@ export default function OAuthCallbackPage() {
         router.replace(`/${locale}/auth/login`)
       }
     })()
-  }, [dispatch, loadMe, locale, router, searchParams])
+  }, [dispatch, locale, router, searchParams])
 
   return (
     <AuthCard title="OAuth callback" subtitle="Finalizing your session...">

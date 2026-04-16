@@ -15,7 +15,6 @@ import { clearPersistedTempToken } from '@/lib/auth/temp-token'
 import { persistSession } from '@/lib/auth/token-storage'
 import {
   useChallengeTwoFactorMutation,
-  useLazyMeQuery,
   useSendTwoFactorEmailOtpMutation,
 } from '@/store/features/auth/authApi'
 import {
@@ -42,7 +41,6 @@ export default function TwoFactorChallengePage() {
   const [emailCooldown, setEmailCooldown] = useState(0)
 
   const [challengeTwoFactor, { isLoading }] = useChallengeTwoFactorMutation()
-  const [loadMe] = useLazyMeQuery()
   const [sendEmailOtp, { isLoading: isSending }] =
     useSendTwoFactorEmailOtpMutation()
 
@@ -145,12 +143,11 @@ export default function TwoFactorChallengePage() {
       })
       clearPersistedTempToken()
       dispatch(clearTempToken())
-      const meResponse = await loadMe().unwrap()
 
       dispatch(
         setAuthenticatedSession({
           token: session.accessToken,
-          user: meResponse.data,
+          user: session.user,
         }),
       )
 

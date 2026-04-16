@@ -2,28 +2,27 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 import { AuthCard } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 
 export default function OnboardingCancelPage() {
+  const t = useTranslations('onboarding.cancel')
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
 
   return (
-    <AuthCard
-      title="Payment canceled"
-      subtitle="No charge was made. You can pick a plan again anytime."
-    >
+    <AuthCard title={t('title')} subtitle={t('subtitle')}>
       <div className="space-y-3">
-        <Button asChild className="w-full">
-          <Link href={`/${locale}/onboarding/plan-selection`}>
-            Choose a plan again
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="w-full">
-          <Link href={`/${locale}/dashboard`}>Return to dashboard</Link>
-        </Button>
+        <Link href={`/${locale}/onboarding/plan-selection`} className="block">
+          <Button className="w-full">{t('chooseAgain')}</Button>
+        </Link>
+        <Link href={`/${locale}/dashboard`} className="block">
+          <Button variant="outline" className="w-full">
+            {t('returnDashboard')}
+          </Button>
+        </Link>
       </div>
     </AuthCard>
   )
