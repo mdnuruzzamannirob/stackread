@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   BadgeCheck,
+  Pencil,
   Plus,
   Shield,
   SlidersHorizontal,
@@ -47,54 +48,63 @@ export function SettingsShell({ locale, children }: SettingsShellProps) {
   const pathname = usePathname()
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
-      <h1 className="text-3xl font-bold text-brand-700">Account Settings</h1>
-      <p className="mt-2 text-sm text-slate-500">
+    <div className="mx-auto w-full max-w-280 px-1">
+      <h1 className="text-4xl font-bold tracking-tight text-brand-700">
+        Account Settings
+      </h1>
+      <p className="mt-1 text-sm font-medium text-slate-500">
         Manage your editorial identity and digital curator preferences.
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[290px,1fr] xl:gap-8">
+      <div className="mt-7 grid gap-6 lg:grid-cols-[300px,1fr] xl:gap-8">
         <aside className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-2xl border border-slate-200 bg-linear-to-br from-slate-100 to-slate-200">
-              <span className="text-3xl font-bold text-slate-600">ER</span>
+          <div className="rounded-xl border border-slate-200 bg-[#f5f8fa] p-5">
+            <div className="relative mx-auto flex h-36 w-36 items-center justify-center overflow-hidden rounded-xl border border-slate-300 bg-[#111827]">
+              <span className="text-4xl font-bold text-white">ER</span>
+              <button
+                type="button"
+                aria-label="Edit profile"
+                className="absolute bottom-1 right-1 rounded-full bg-brand-700 p-1.5 text-white"
+              >
+                <Pencil className="size-3.5" />
+              </button>
             </div>
 
             <div className="mt-4 text-center">
-              <p className="text-2xl font-semibold text-slate-900">
+              <p className="text-2xl font-semibold text-slate-800">
                 Elena Rodriguez
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm font-medium text-slate-500">
                 Senior Curator / Premium Member
               </p>
             </div>
 
             <div className="mt-3 flex justify-center">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                <BadgeCheck className="size-3.5" />
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#f3d595] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#7b5312]">
+                <BadgeCheck className="size-3" />
                 Premium
               </span>
             </div>
           </div>
 
-          <nav className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+          <nav className="rounded-xl border border-slate-200 bg-[#f5f8fa] p-2">
             {settingsLinks.map((item) => {
               const Icon = item.icon
               const itemPath = `/${locale}/${item.href}`
-              const isActive = pathname === itemPath
+              const isActive = pathname.startsWith(itemPath)
 
               return (
                 <Link
                   key={item.href}
                   href={itemPath}
-                  className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
                     isActive
                       ? item.isDanger
-                        ? 'bg-red-50 text-red-700'
-                        : 'bg-brand-50 text-brand-700'
+                        ? 'bg-[#ffecec] text-red-700'
+                        : 'bg-white text-brand-700'
                       : item.isDanger
-                        ? 'text-red-600 hover:bg-red-50'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'text-red-600 hover:bg-[#ffecec]'
+                        : 'text-slate-600 hover:bg-white'
                   }`}
                 >
                   <Icon className="size-4" />
@@ -106,7 +116,7 @@ export function SettingsShell({ locale, children }: SettingsShellProps) {
 
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-700 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white shadow-md transition hover:bg-brand-800"
+            className="mt-8 inline-flex items-center gap-2 rounded-md bg-brand-700 px-5 py-2.5 text-xs font-semibold text-white shadow-[0_8px_16px_-8px_rgba(4,63,49,0.65)] transition hover:bg-brand-800"
           >
             <Plus className="size-4" />
             Add New Book

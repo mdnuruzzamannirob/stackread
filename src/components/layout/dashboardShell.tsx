@@ -13,6 +13,12 @@ interface DashboardShellProps {
 export function DashboardShell({ locale, children }: DashboardShellProps) {
   const { isSidebarOpen, closeSidebar } = useSidebar()
   const pathname = usePathname()
+  const isSettingsRoute =
+    pathname.startsWith(`/${locale}/profile`) ||
+    pathname.startsWith(`/${locale}/security`) ||
+    pathname.startsWith(`/${locale}/preferences`) ||
+    pathname.startsWith(`/${locale}/danger`) ||
+    pathname.startsWith(`/${locale}/settings`)
 
   const title = pathname.startsWith(`/${locale}/notifications`)
     ? 'Notifications'
