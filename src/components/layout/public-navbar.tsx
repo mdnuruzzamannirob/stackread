@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { AuthLinks } from '@/components/common/auth-links'
 import { LocaleSwitcher } from '@/components/common/locale-switcher'
 import { ThemeToggle } from '@/components/common/theme-toggle'
 
@@ -38,6 +39,7 @@ export function PublicNavbar({ locale }: { locale: string }) {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <LocaleSwitcher currentLocale={locale} />
+          <AuthLinks locale={locale} />
         </div>
       </div>
     </header>
