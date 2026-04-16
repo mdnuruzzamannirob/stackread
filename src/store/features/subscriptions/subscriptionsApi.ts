@@ -83,6 +83,16 @@ type InitiatePaymentResponse = {
   checkout_url?: string
 }
 
+type ConfirmStripeSessionBody = {
+  sessionId: string
+  reference?: string
+}
+
+type ConfirmStripeSessionResponse = {
+  status: 'pending' | 'completed'
+  onboardingCompleted: boolean
+}
+
 type RetryPaymentResponse = ApiEnvelope<SubscriptionSummary>
 
 export const subscriptionsApi = baseApi.injectEndpoints({
@@ -165,6 +175,17 @@ export const subscriptionsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Subscription'],
     }),
+    confirmStripeCheckoutSession: builder.mutation<
+      ApiEnvelope<ConfirmStripeSessionResponse>,
+      ConfirmStripeSessionBody
+    >({
+      query: (body) => ({
+        url: '/payments/confirm-stripe-session',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Subscription', 'Onboarding'],
+    }),
   }),
 })
 
@@ -177,4 +198,5 @@ export const {
   useDowngradeMySubscriptionMutation,
   useRetryMySubscriptionPaymentMutation,
   useInitiateStripePaymentMutation,
+  useConfirmStripeCheckoutSessionMutation,
 } = subscriptionsApi

@@ -1,13 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import {
   type PlanSummary,
+  type SubscriptionSummary,
   useCancelMySubscriptionMutation,
   useDowngradeMySubscriptionMutation,
   useGetMySubscriptionQuery,
@@ -105,7 +106,7 @@ export function SubscriptionManagementCard() {
     : undefined
 
   const changeablePlans = plans.filter(
-    (plan) => plan.id !== subscription?.planId,
+    (plan) => !subscription || plan.id !== subscription.planId,
   )
 
   const selectedPlan = changeablePlans.find(
@@ -202,23 +203,23 @@ export function SubscriptionManagementCard() {
   }
 
   const handleChangePlan = async () => {
-    if (!subscription || !currentPlan) {
-      toast.error('Current subscription not found.')
-      return
-    }
-
     if (!selectedPlan) {
       toast.error('Please choose a target plan first.')
       return
     }
 
-    if (selectedPlan.id === currentPlan.id) {
+    if (subscription && currentPlan && selectedPlan.id === currentPlan.id) {
       toast.error('Please choose a different plan.')
       return
     }
 
     try {
       if (selectedPlan.isFree) {
+        if (!subscription || !currentPlan) {
+          toast.error('You are already on free access.')
+          return
+        }
+
         await downgradeMySubscription({ newPlanId: selectedPlan.id }).unwrap()
         toast.success('Switched to free plan successfully.')
       } else {
@@ -277,131 +278,133 @@ export function SubscriptionManagementCard() {
         <p className="mt-4 text-sm text-muted-foreground">
           Loading subscription details...
         </p>
-      ) : !subscription ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          No active or pending subscription found for your account.
-        </p>
       ) : (
         <div className="mt-5 space-y-6">
-          <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {t('currentStatus')}
-                </p>
-                <h3 className="mt-1 text-lg font-semibold tracking-tight">
-                  {currentPlan?.name ?? 'Unknown plan'}
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {subscription.status === 'pending'
-                    ? t('pendingStatusDescription')
-                    : subscription.status === 'past_due'
-                      ? t('pastDueStatusDescription')
-                      : subscription.status === 'expired'
-                        ? t('expiredStatusDescription')
-                        : t('activeStatusDescription')}
-                </p>
+          {!subscription ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              No active or pending subscription found for your account.
+            </p>
+          ) : (
+            <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {t('currentStatus')}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold tracking-tight">
+                    {currentPlan?.name ?? 'Unknown plan'}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {subscription.status === 'pending'
+                      ? t('pendingStatusDescription')
+                      : subscription.status === 'past_due'
+                        ? t('pastDueStatusDescription')
+                        : subscription.status === 'expired'
+                          ? t('expiredStatusDescription')
+                          : t('activeStatusDescription')}
+                  </p>
+                </div>
+
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusToneClass(subscription.status)}`}
+                >
+                  {formatStateLabel(subscription.status)}
+                </span>
               </div>
 
-              <span
-                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusToneClass(subscription.status)}`}
-              >
-                {formatStateLabel(subscription.status)}
-              </span>
-            </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t('planLabel')}
+                  </p>
+                  <p className="mt-1 text-sm font-medium">
+                    {currentPlan?.name ?? 'Unknown'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentPlan?.isFree
+                      ? t('freePlanLabel')
+                      : t('paidPlanLabel')}
+                  </p>
+                </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {t('planLabel')}
-                </p>
-                <p className="mt-1 text-sm font-medium">
-                  {currentPlan?.name ?? 'Unknown'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {currentPlan?.isFree
-                    ? t('freePlanLabel')
-                    : t('paidPlanLabel')}
-                </p>
-              </div>
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t('renewalLabel')}
+                  </p>
+                  <p className="mt-1 text-sm font-medium">
+                    {subscription.autoRenew
+                      ? t('automaticRenewal')
+                      : t('manualRenewal')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('endsLabel')}: {formatDateLabel(subscription.endsAt)}
+                  </p>
+                </div>
 
-              <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {t('renewalLabel')}
-                </p>
-                <p className="mt-1 text-sm font-medium">
-                  {subscription.autoRenew
-                    ? t('automaticRenewal')
-                    : t('manualRenewal')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('endsLabel')}: {formatDateLabel(subscription.endsAt)}
-                </p>
-              </div>
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t('periodEndLabel')}
+                  </p>
+                  <p className="mt-1 text-sm font-medium">
+                    {formatDateLabel(subscription.currentPeriodEnd)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('billingWindowLabel')}
+                  </p>
+                </div>
 
-              <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {t('periodEndLabel')}
-                </p>
-                <p className="mt-1 text-sm font-medium">
-                  {formatDateLabel(subscription.currentPeriodEnd)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('billingWindowLabel')}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {t('paymentLinkLabel')}
-                </p>
-                <p className="mt-1 text-sm font-medium">
-                  {subscription.pendingInvoiceId ?? t('notPending')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {subscription.retryStatus
-                    ? `${t('retryLabel')}: ${formatStateLabel(subscription.retryStatus)}`
-                    : t('noRetryScheduled')}
-                </p>
-              </div>
-            </div>
-
-            {hasRetryState ? (
-              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900">
-                <p className="font-medium">{t('paymentRecoveryTitle')}</p>
-                <div className="mt-2 space-y-1 text-amber-900/80">
-                  {retrySummary.length ? (
-                    <p>{retrySummary.join(' · ')}</p>
-                  ) : null}
-                  {subscription.retryNextAt ? (
-                    <p>
-                      {t('nextRetry')}:{' '}
-                      {formatDateLabel(subscription.retryNextAt)}
-                    </p>
-                  ) : null}
-                  {subscription.retryLastAttemptAt ? (
-                    <p>
-                      {t('lastAttempt')}:{' '}
-                      {formatDateLabel(subscription.retryLastAttemptAt)}
-                    </p>
-                  ) : null}
-                  {subscription.retryLastError ? (
-                    <p>
-                      {t('lastError')}: {subscription.retryLastError}
-                    </p>
-                  ) : null}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t('paymentLinkLabel')}
+                  </p>
+                  <p className="mt-1 text-sm font-medium">
+                    {subscription.pendingInvoiceId ?? t('notPending')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription.retryStatus
+                      ? `${t('retryLabel')}: ${formatStateLabel(subscription.retryStatus)}`
+                      : t('noRetryScheduled')}
+                  </p>
                 </div>
               </div>
-            ) : null}
 
-            {!isActiveSubscription ? (
-              <p className="mt-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                {t('inactiveNotice', {
-                  status: formatStateLabel(subscription.status),
-                })}
-              </p>
-            ) : null}
-          </div>
+              {hasRetryState ? (
+                <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900">
+                  <p className="font-medium">{t('paymentRecoveryTitle')}</p>
+                  <div className="mt-2 space-y-1 text-amber-900/80">
+                    {retrySummary.length ? (
+                      <p>{retrySummary.join(' · ')}</p>
+                    ) : null}
+                    {subscription.retryNextAt ? (
+                      <p>
+                        {t('nextRetry')}:{' '}
+                        {formatDateLabel(subscription.retryNextAt)}
+                      </p>
+                    ) : null}
+                    {subscription.retryLastAttemptAt ? (
+                      <p>
+                        {t('lastAttempt')}:{' '}
+                        {formatDateLabel(subscription.retryLastAttemptAt)}
+                      </p>
+                    ) : null}
+                    {subscription.retryLastError ? (
+                      <p>
+                        {t('lastError')}: {subscription.retryLastError}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {!isActiveSubscription ? (
+                <p className="mt-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                  {t('inactiveNotice', {
+                    status: formatStateLabel(subscription.status),
+                  })}
+                </p>
+              ) : null}
+            </div>
+          )}
 
           {canRetryPayment ? (
             <div className="rounded-xl border border-border bg-background p-4">
@@ -420,7 +423,7 @@ export function SubscriptionManagementCard() {
             </div>
           ) : null}
 
-          {!isFreeCurrentPlan ? (
+          {!isFreeCurrentPlan && subscription ? (
             <div className="rounded-xl border border-border bg-background p-4">
               <h3 className="font-medium">{t('renewTitle')}</h3>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -488,7 +491,7 @@ export function SubscriptionManagementCard() {
             </Button>
           </div>
 
-          {!isFreeCurrentPlan ? (
+          {!isFreeCurrentPlan && subscription ? (
             <div className="rounded-xl border border-border bg-background p-4">
               <h3 className="font-medium">{t('cancelTitle')}</h3>
               <p className="mt-1 text-sm text-muted-foreground">
