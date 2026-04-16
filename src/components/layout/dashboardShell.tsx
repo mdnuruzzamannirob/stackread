@@ -1,6 +1,7 @@
 'use client'
 
 import useSidebar from '@/hooks/useSidebar'
+import { usePathname } from 'next/navigation'
 import { DashboardHeader } from './dashboardHeader'
 import { DashboardSidebar } from './dashboardSidebar'
 
@@ -11,6 +12,17 @@ interface DashboardShellProps {
 
 export function DashboardShell({ locale, children }: DashboardShellProps) {
   const { isSidebarOpen, closeSidebar } = useSidebar()
+  const pathname = usePathname()
+
+  const title = pathname.startsWith(`/${locale}/notifications`)
+    ? 'Notifications'
+    : pathname.startsWith(`/${locale}/settings`)
+      ? 'Settings'
+      : pathname.startsWith(`/${locale}/profile`)
+        ? 'My Profile'
+        : pathname.startsWith(`/${locale}/security`)
+          ? 'Security'
+          : 'My Account'
 
   return (
     <div className="min-h-dvh bg-brand-50 text-brand-900">
@@ -34,7 +46,7 @@ export function DashboardShell({ locale, children }: DashboardShellProps) {
         />
       ) : null}
 
-      <DashboardHeader locale={locale} title="My Account" />
+      <DashboardHeader locale={locale} title={title} />
 
       <main className="min-h-dvh px-4 md:ml-60 pb-8 pt-24 md:px-6 md:pt-28 lg:pt-28">
         {children}

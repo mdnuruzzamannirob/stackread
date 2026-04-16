@@ -1,0 +1,134 @@
+import { ArrowLeft, Bell, Clock3 } from 'lucide-react'
+import Link from 'next/link'
+
+import { Button } from '@/components/ui/button'
+
+import { notificationItems } from '../data'
+
+type NotificationDetailsPageProps = {
+  params: Promise<{
+    locale: string
+    id: string
+  }>
+}
+
+export default async function NotificationDetailsPage({
+  params,
+}: NotificationDetailsPageProps) {
+  const { locale, id } = await params
+  const notificationId = Number(id)
+
+  const notification = notificationItems.find(
+    (item) => item.id === notificationId,
+  )
+
+  if (!notification) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <p className="text-sm text-slate-500">Notification not found.</p>
+        <Link
+          href={`/${locale}/notifications`}
+          className="mt-3 inline-flex items-center text-sm font-semibold text-[#0e7178]"
+        >
+          <ArrowLeft className="mr-1 size-4" />
+          Back to notifications
+        </Link>
+      </section>
+    )
+  }
+
+  return (
+    <section className="space-y-6">
+      <Link
+        href={`/${locale}/notifications`}
+        className="inline-flex items-center text-sm font-semibold text-[#0e7178] hover:text-[#0a666b]"
+      >
+        <ArrowLeft className="mr-1 size-4" />
+        Back to notifications
+      </Link>
+
+      <article className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-6 py-6">
+        <div className="pointer-events-none absolute -right-3 top-5 text-slate-200">
+          <Bell className="size-14" />
+        </div>
+
+        <div className="relative space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                notification.badge === 'New Release'
+                  ? 'bg-amber-100 text-amber-700'
+                  : notification.badge === 'System'
+                    ? 'bg-blue-100 text-blue-700'
+                    : notification.badge === 'Reminder'
+                      ? 'bg-slate-200 text-slate-600'
+                      : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {notification.badge}
+            </span>
+            <span className="inline-flex items-center text-xs text-slate-500">
+              <Clock3 className="mr-1 size-3.5" />
+              {notification.timestamp}
+            </span>
+          </div>
+
+          <h1 className="max-w-4xl text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
+            {notification.detailTitle}
+          </h1>
+
+          <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+            {notification.detailBody}
+          </p>
+
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button className="h-9 rounded-md bg-[#0c7378] px-4 text-xs font-semibold text-white hover:bg-[#0a666b]">
+              {notification.primaryAction}
+            </Button>
+            <Button
+              variant="outline"
+              className="h-9 rounded-md border-slate-200 bg-slate-50 px-4 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              {notification.secondaryAction}
+            </Button>
+          </div>
+        </div>
+      </article>
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Notification Metadata
+        </h2>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Type
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-800">
+              {notification.filter}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Group
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-800">
+              {notification.group}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Summary
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              {notification.description}
+            </p>
+          </div>
+        </div>
+      </article>
+    </section>
+  )
+}

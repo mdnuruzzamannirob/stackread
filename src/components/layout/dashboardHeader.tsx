@@ -58,12 +58,13 @@ export function DashboardHeader({ locale, title }: DashboardHeaderProps) {
           >
             En
           </button>
-          <button
-            className="flex size-10 items-center justify-center rounded-lg border bg-white border-neutral-200 text-neutral-500 hover:text-brand-600 "
-            aria-label="Open profile"
+          <Link
+            href={`/${locale}/notifications`}
+            className="flex size-10 items-center justify-center rounded-lg border bg-white border-neutral-200 text-neutral-500 transition hover:text-brand-600"
+            aria-label="Open notifications"
           >
             <Bell className="size-5" />
-          </button>
+          </Link>
           <Link
             href={`/${locale}/profile`}
             className="flex size-10 items-center justify-center rounded-lg  bg-brand-600 text-white transition hover:bg-brand-700"

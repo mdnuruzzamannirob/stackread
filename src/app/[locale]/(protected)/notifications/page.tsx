@@ -1,0 +1,278 @@
+'use client'
+
+import {
+  ArrowRight,
+  BellRing,
+  BookOpen,
+  Clock3,
+  Dot,
+  ShieldAlert,
+  Sparkles,
+} from 'lucide-react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+
+import { Button } from '@/components/ui/button'
+import {
+  notificationFilters,
+  notificationItems,
+  type NotificationFilter,
+  type NotificationItem,
+} from './data'
+
+function NotificationGlyph({ icon }: { icon: NotificationItem['icon'] }) {
+  const iconClassName = 'size-5'
+
+  switch (icon) {
+    case 'book':
+      return <BookOpen className={iconClassName} />
+    case 'shield':
+      return <ShieldAlert className={iconClassName} />
+    case 'clock':
+      return <Clock3 className={iconClassName} />
+    default:
+      return <Sparkles className={iconClassName} />
+  }
+}
+
+export default function NotificationsPage() {
+  const params = useParams<{ locale: string }>()
+  const locale = params?.locale ?? 'en'
+  const [activeFilter, setActiveFilter] = useState<NotificationFilter>('All')
+  const [notifications, setNotifications] = useState(notificationItems)
+
+  const unreadCount = notifications.filter((item) => !item.read).length
+
+  const filteredNotifications = useMemo(() => {
+    if (activeFilter === 'All') {
+      return notifications
+    }
+
+    return notifications.filter((item) => item.filter === activeFilter)
+  }, [activeFilter, notifications])
+
+  const notificationsByGroup = useMemo(() => {
+    const grouped = new Map<'Today' | 'Yesterday', NotificationItem[]>()
+
+    for (const notification of filteredNotifications) {
+      const currentGroup = grouped.get(notification.group) ?? []
+      grouped.set(notification.group, [...currentGroup, notification])
+    }
+
+    return grouped
+  }, [filteredNotifications])
+
+  const markAllAsRead = () => {
+    setNotifications((current) =>
+      current.map((item) => ({ ...item, read: true })),
+    )
+    toast.success('All notifications marked as read')
+  }
+
+  const markNotificationAsRead = (id: number) => {
+    setNotifications((current) =>
+      current.map((item) => (item.id === id ? { ...item, read: true } : item)),
+    )
+  }
+
+  const loadOlderNotifications = () => {
+    toast.success('Older notifications are mocked in this demo')
+  }
+
+  return (
+    <section className="space-y-8">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+        <article className="relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-6">
+          <div className="pointer-events-none absolute right-16 top-8 text-neutral-200">
+            <BellRing className="size-20" />
+          </div>
+
+          <div className="relative max-w-2xl space-y-4">
+            <h1 className="text-2xl font-semibold text-brand-600 sm:text-3xl">
+              Inbox Overview
+            </h1>
+            <p className="max-w-sm text-sm text-slate-600">
+              You have {unreadCount} unread updates across your curated library
+              and system alerts.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="h-10 rounded-md bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700"
+              >
+                Mark all as read
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  toast.message('Notification preferences are mocked')
+                }
+                className="h-10 rounded-md hover:bg-brand-200 px-4 text-xs font-semibold text-neutral-600 hover:text-brand-600"
+              >
+                Preferences
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <aside className="rounded-xl border border-brand-200 bg-brand-100 p-5">
+          <p className="text-[10px] font-semibold uppercase text-brand-600">
+            Quick Filter
+          </p>
+          <div className="mt-5 space-y-2">
+            {notificationFilters.map((filter) => {
+              const isActive = activeFilter === filter.label
+              return (
+                <button
+                  key={filter.label}
+                  type="button"
+                  onClick={() => setActiveFilter(filter.label)}
+                  className={`flex w-full items-center justify-between rounded-md px-4 py-2.5 text-left text-sm font-semibold transition ${
+                    isActive
+                      ? 'text-brand-600 bg-white'
+                      : 'text-neutral-600 hover:bg-white'
+                  }`}
+                >
+                  <span>{filter.label}</span>
+                  <span
+                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5 ${
+                      isActive ? 'bg-brand-600  text-white' : 'text-slate-500'
+                    }`}
+                  >
+                    {filter.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </aside>
+      </div>
+
+      <div className="space-y-9">
+        {(['Today', 'Yesterday'] as const).map((group) => {
+          const items = notificationsByGroup.get(group) ?? []
+
+          if (!items.length) {
+            return null
+          }
+
+          return (
+            <section key={group} className="space-y-4">
+              <div className="border-t border-slate-200 pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  {group}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {items.map((notification) => {
+                  const detailsHref = `/${locale}/notifications/${notification.id}`
+
+                  return (
+                    <article
+                      key={notification.id}
+                      className={`rounded-xl border border-slate-200 bg-white px-4 py-4 ${
+                        notification.read ? 'opacity-70' : ''
+                      }`}
+                    >
+                      <div className="grid gap-4 md:grid-cols-[54px_minmax(0,1fr)_18px] md:items-start">
+                        <div
+                          className={`flex h-12 w-12 items-center justify-center rounded-md ${
+                            notification.icon === 'book'
+                              ? 'bg-[#0f7f86] text-white'
+                              : notification.icon === 'shield'
+                                ? 'bg-[#dbeafe] text-sky-700'
+                                : notification.icon === 'clock'
+                                  ? 'bg-slate-200 text-slate-500'
+                                  : 'bg-amber-200 text-amber-700'
+                          }`}
+                        >
+                          <NotificationGlyph icon={notification.icon} />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span
+                              className={`rounded-full px-2 py-0.5 font-semibold ${
+                                notification.badge === 'New Release'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : notification.badge === 'System'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : notification.badge === 'Reminder'
+                                      ? 'bg-slate-200 text-slate-500'
+                                      : 'bg-amber-100 text-amber-700'
+                              }`}
+                            >
+                              {notification.badge}
+                            </span>
+                            <span className="text-slate-400">
+                              {notification.timestamp}
+                            </span>
+                          </div>
+
+                          <Link href={detailsHref} className="block">
+                            <h2 className="text-[17px] font-semibold leading-snug text-slate-900 hover:text-[#0e7178]">
+                              {notification.title}
+                            </h2>
+                          </Link>
+
+                          <p className="text-sm text-slate-500">
+                            {notification.description}
+                          </p>
+
+                          <div className="flex flex-wrap items-center gap-4 text-sm font-semibold">
+                            <Link
+                              href={detailsHref}
+                              onClick={() =>
+                                markNotificationAsRead(notification.id)
+                              }
+                              className="inline-flex items-center gap-1 text-[#0e7178] hover:text-[#0a666b]"
+                            >
+                              {notification.primaryAction}
+                              <ArrowRight className="size-3.5" />
+                            </Link>
+                            <button
+                              type="button"
+                              className="text-slate-400 hover:text-slate-600"
+                              onClick={() =>
+                                toast.message(notification.secondaryAction)
+                              }
+                            >
+                              {notification.secondaryAction}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start justify-end pt-1">
+                          {!notification.read ? (
+                            <Dot className="size-5 text-[#0e7178]" />
+                          ) : (
+                            <Dot className="size-5 text-slate-300" />
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+
+      <div className="flex justify-center pt-1">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 rounded-xl border-slate-200 bg-slate-100 px-6 text-xs font-semibold uppercase tracking-[0.12em] text-[#0e7178] hover:bg-slate-200"
+          onClick={loadOlderNotifications}
+        >
+          Load older notifications
+        </Button>
+      </div>
+    </section>
+  )
+}

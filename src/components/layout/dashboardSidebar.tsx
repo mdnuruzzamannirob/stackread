@@ -42,7 +42,7 @@ export function DashboardSidebar({ locale }: DashboardSidebarProps) {
     },
     {
       label: 'Notifications',
-      href: `/${locale}/dashboard#notifications`,
+      href: `/${locale}/notifications`,
       icon: Bell,
     },
     {
@@ -98,6 +98,8 @@ export function DashboardSidebar({ locale }: DashboardSidebarProps) {
           const isActive =
             (item.label === 'My Account' &&
               pathname.startsWith(`/${locale}/dashboard`)) ||
+            (item.label === 'Notifications' &&
+              pathname.startsWith(`/${locale}/notifications`)) ||
             pathname === item.href
 
           return (
