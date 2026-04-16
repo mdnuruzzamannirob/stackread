@@ -4,7 +4,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import { AuthCard } from '@/components/layout/auth-card'
+import { AuthCard } from '@/components/layout/authCard'
 import { parseOAuthCallbackParams } from '@/lib/auth/normalize-auth'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import {

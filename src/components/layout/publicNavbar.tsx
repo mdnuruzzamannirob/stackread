@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
-import { AuthLinks } from '@/components/common/auth-links'
-import { LocaleSwitcher } from '@/components/common/locale-switcher'
-import { ThemeToggle } from '@/components/common/theme-toggle'
+import { AuthLinks } from '@/components/common/authLinks'
+import { LocaleSwitcher } from '@/components/common/localeSwitcher'
+import { ThemeToggle } from '@/components/common/themeToggle'
 
 export function PublicNavbar({ locale }: { locale: string }) {
   return (

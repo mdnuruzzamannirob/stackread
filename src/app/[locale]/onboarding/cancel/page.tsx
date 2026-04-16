@@ -1,10 +1,10 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 
-import { AuthCard } from '@/components/layout/auth-card'
+import { AuthCard } from '@/components/layout/authCard'
 import { Button } from '@/components/ui/button'
 
 export default function OnboardingCancelPage() {

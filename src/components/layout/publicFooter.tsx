@@ -1,4 +1,4 @@
-import { Heart, Mail } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import Link from 'next/link'
 
 export function PublicFooter({ locale }: { locale: string }) {
@@ -99,49 +99,44 @@ export function PublicFooter({ locale }: { locale: string }) {
           <div className="space-y-3">
             <h4 className="font-semibold text-foreground">Newsletter</h4>
             <p className="text-sm text-muted-foreground">
-              Get the latest editorial picks delivered to your inbox.
+              Subscribe to get the latest updates on new releases and special
+              offers.
             </p>
-            <div className="flex">
+            <div className="flex gap-2">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 rounded-l-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <button className="rounded-r-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition">
-                <Mail size={16} />
+              <button className="rounded-lg bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-primary-700 transition">
+                <Mail className="size-4" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="my-8 border-t border-border" />
-
-        {/* Bottom */}
-        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-          <p className="text-sm text-muted-foreground">
-            © {currentYear} StackRead. Made with{' '}
-            <Heart size={14} className="inline text-red-500" /> for Bengali
-            literature.
+        <div className="mt-8 border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            © {currentYear} StackRead. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link
               href="#"
-              className="text-sm text-muted-foreground hover:text-foreground transition"
+              className="text-xs text-muted-foreground hover:text-foreground transition"
             >
-              Privacy
+              Privacy Policy
             </Link>
             <Link
               href="#"
-              className="text-sm text-muted-foreground hover:text-foreground transition"
+              className="text-xs text-muted-foreground hover:text-foreground transition"
             >
-              Terms
+              Terms of Service
             </Link>
             <Link
               href="#"
-              className="text-sm text-muted-foreground hover:text-foreground transition"
+              className="text-xs text-muted-foreground hover:text-foreground transition"
             >
-              Support
+              Cookie Policy
             </Link>
           </div>
         </div>

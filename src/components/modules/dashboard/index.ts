@@ -1,0 +1,7 @@
+export { DashboardHeader } from '../../layout/dashboardHeader'
+export { DashboardSidebar } from '../../layout/dashboardSidebar'
+export { BookRecommendations } from './bookRecommendations'
+export { QuickActions } from './quickActions'
+export { ReadingStats } from './readingStats'
+export { RecentActivity } from './recentActivity'
+export { TopicsGrid } from './topicsGrid'

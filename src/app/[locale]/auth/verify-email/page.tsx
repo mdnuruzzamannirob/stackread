@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import { AuthCard } from '@/components/layout/auth-card'
+import { AuthCard } from '@/components/layout/authCard'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'

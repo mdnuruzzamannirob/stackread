@@ -1,13 +1,9 @@
-import { SubscriptionManagementCard } from '@/components/subscription/subscription-management-card'
-import { serverApiRequest } from '@/lib/api/server'
-import { getServerAccessToken } from '@/lib/auth/server-session'
-import Link from 'next/link'
-
-type LoginHistoryItem = {
-  createdAt?: string
-  ipAddress?: string
-  userAgent?: string
-}
+import {
+  BookRecommendations,
+  ReadingStats,
+  RecentActivity,
+  TopicsGrid,
+} from '@/components/modules/dashboard'
 
 export default async function DashboardPage({
   params,
@@ -15,75 +11,33 @@ export default async function DashboardPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const token = await getServerAccessToken()
-  const history = token
-    ? await serverApiRequest<LoginHistoryItem[]>({
-        path: '/auth/me/login-history',
-        token,
-      })
-    : null
-
-  const topics = [
-    { title: 'Books', description: 'Explore catalog and availability.' },
-    { title: 'Authors', description: 'Follow your favorite writers.' },
-    { title: 'Categories', description: 'Browse by genre and mood.' },
-    { title: 'Wishlist', description: 'Save books for later reading.' },
-  ]
 
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Welcome to your reading workspace. Start from topics or manage your
-            account.
-          </p>
+    <section id="browse" className=" w-full space-y-8">
+      <ReadingStats />
+
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_250px]">
+        <div className="space-y-10">
+          <RecentActivity />
+          <BookRecommendations locale={locale} />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            href={`/${locale}/profile`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
-          >
-            Open profile
-          </Link>
-          <Link
-            href={`/${locale}/settings`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
-          >
-            Open settings
-          </Link>
-          <Link
-            href={`/${locale}/security`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
-          >
-            Open security (2FA)
-          </Link>
-        </div>
-      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {topics.map((topic) => (
-          <article
-            key={topic.title}
-            className="rounded-xl border border-border bg-card p-4"
-          >
-            <h2 className="font-semibold">{topic.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {topic.description}
-            </p>
-          </article>
-        ))}
-      </div>
+        <aside id="notifications" className="space-y-8 pt-1">
+          <div className="rounded-2xl border border-transparent bg-transparent px-1 py-1">
+            <div className="border-l-4 border-[#a86c4e] pl-4 text-slate-700">
+              <p className="text-base leading-8 italic text-slate-700">
+                “A reader lives a thousand lives before he dies. The man who
+                never reads lives only one.”
+              </p>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+                — George R.R. Martin
+              </p>
+            </div>
+          </div>
 
-      <div className="rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold">Recent login history</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Rows found: {Array.isArray(history) ? history.length : 0}
-        </p>
+          <TopicsGrid locale={locale} />
+        </aside>
       </div>
-
-      <SubscriptionManagementCard />
     </section>
   )
 }

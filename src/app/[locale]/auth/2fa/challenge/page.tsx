@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { AuthCard } from '@/components/layout/auth-card'
+import { AuthCard } from '@/components/layout/authCard'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { useRequireTempToken } from '@/lib/auth/guards'
