@@ -19,7 +19,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <Provider store={store}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         {children}
-        <Toaster richColors closeButton />
+        <Toaster
+          richColors
+          duration={3000}
+          swipeDirections={['bottom', 'left', 'right', 'top']}
+          position="top-center"
+          expand
+
+        />
       </ThemeProvider>
     </Provider>
   )
