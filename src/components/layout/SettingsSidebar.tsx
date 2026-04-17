@@ -2,10 +2,6 @@
 
 import { useMeQuery } from '@/store/features/auth/authApi'
 import {
-  useGetMySubscriptionQuery,
-  useGetPlansQuery,
-} from '@/store/features/subscriptions/subscriptionsApi'
-import {
   AlertTriangle,
   BadgeCheck,
   CreditCard,
@@ -41,19 +37,13 @@ const resolveInitials = (
 const SettingsSidebar = ({ locale }: { locale: string }) => {
   const pathname = usePathname()
   const { data: meResponse } = useMeQuery()
-  const { data: subscriptionResponse } = useGetMySubscriptionQuery()
-  const { data: plansResponse } = useGetPlansQuery()
 
   const user = meResponse?.data
-  const subscription = subscriptionResponse?.data
-  const currentPlan = subscription?.planId
-    ? plansResponse?.data?.find((plan) => plan.id === subscription.planId)
-    : null
 
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Reader'
   const initials = resolveInitials(user?.firstName, user?.lastName, user?.email)
-  const badgeLabel = currentPlan?.name ?? 'Standard'
+  const badgeLabel = 'Standard'
 
   const settingsLinks = [
     {
@@ -125,9 +115,7 @@ const SettingsSidebar = ({ locale }: { locale: string }) => {
             Subscription
           </p>
           <p className="mt-1 text-sm font-semibold text-slate-800">
-            {subscription?.status
-              ? `${subscription.status.replace(/_/g, ' ')} subscriber`
-              : 'Free member'}
+            Free member
           </p>
         </div>
       </div>

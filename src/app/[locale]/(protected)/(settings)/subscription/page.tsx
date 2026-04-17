@@ -106,24 +106,12 @@ export default function SubscriptionPage() {
   const [cancelImmediately, setCancelImmediately] = useState(false)
 
   const { data: subscriptionResponse, isFetching: isSubscriptionLoading } =
-    useGetMySubscriptionQuery(undefined, {
-      pollingInterval: 15_000,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
-    })
+    useGetMySubscriptionQuery()
   const { data: plansResponse, isFetching: isPlansLoading } = useGetPlansQuery()
   const { data: paymentMethodResponse, isFetching: isPaymentMethodLoading } =
-    useGetMyPaymentMethodQuery(undefined, {
-      pollingInterval: 15_000,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
-    })
+    useGetMyPaymentMethodQuery()
   const { data: paymentsResponse, isFetching: isPaymentHistoryLoading } =
-    useGetMyPaymentsQuery(undefined, {
-      pollingInterval: 20_000,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
-    })
+    useGetMyPaymentsQuery()
 
   const [cancelMySubscription, { isLoading: isCancelling }] =
     useCancelMySubscriptionMutation()
