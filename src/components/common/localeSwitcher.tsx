@@ -32,7 +32,12 @@ export function LocaleSwitcher({ currentLocale }: { currentLocale: string }) {
   }
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={switchLocale}>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={switchLocale}
+      className={'size-10'}
+    >
       {currentLocale === 'en' ? 'BN' : 'EN'}
     </Button>
   )

@@ -15,11 +15,17 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import { getApiErrorMessage } from '@/lib/api/error-message'
 import {
-  notificationFilters,
-  notificationItems,
+  useBulkMarkNotificationsAsReadMutation,
+  useGetMyNotificationsQuery,
+  useMarkNotificationAsReadMutation,
+} from '@/store/features/notifications/notificationsApi'
+import {
+  buildNotificationFilters,
   type NotificationFilter,
   type NotificationItem,
+  toNotificationItem,
 } from './data'
 
 function NotificationGlyph({ icon }: { icon: NotificationItem['icon'] }) {
@@ -41,7 +47,28 @@ export default function NotificationsPage() {
   const params = useParams<{ locale: string }>()
   const locale = params?.locale ?? 'en'
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>('All')
-  const [notifications, setNotifications] = useState(notificationItems)
+  const { data: notificationsResponse, isLoading } = useGetMyNotificationsQuery(
+    {
+      page: 1,
+      limit: 50,
+    },
+  )
+  const [markNotificationAsReadMutation] = useMarkNotificationAsReadMutation()
+  const [bulkMarkNotificationsAsReadMutation, { isLoading: isMarkingAll }] =
+    useBulkMarkNotificationsAsReadMutation()
+
+  const rawNotifications = notificationsResponse?.data ?? []
+
+  const notifications = useMemo(
+    () =>
+      rawNotifications.map((notification) => toNotificationItem(notification)),
+    [rawNotifications],
+  )
+
+  const notificationFilters = useMemo(
+    () => buildNotificationFilters(notifications),
+    [notifications],
+  )
 
   const unreadCount = notifications.filter((item) => !item.read).length
 
@@ -54,7 +81,7 @@ export default function NotificationsPage() {
   }, [activeFilter, notifications])
 
   const notificationsByGroup = useMemo(() => {
-    const grouped = new Map<'Today' | 'Yesterday', NotificationItem[]>()
+    const grouped = new Map<'Today' | 'Earlier', NotificationItem[]>()
 
     for (const notification of filteredNotifications) {
       const currentGroup = grouped.get(notification.group) ?? []
@@ -64,21 +91,45 @@ export default function NotificationsPage() {
     return grouped
   }, [filteredNotifications])
 
-  const markAllAsRead = () => {
-    setNotifications((current) =>
-      current.map((item) => ({ ...item, read: true })),
-    )
-    toast.success('All notifications marked as read')
+  const markAllAsRead = async () => {
+    const unreadIds = rawNotifications
+      .filter((notification) => !notification.read)
+      .map((notification) => notification.id)
+
+    if (unreadIds.length === 0) {
+      toast.message('No unread notifications found.')
+      return
+    }
+
+    try {
+      await bulkMarkNotificationsAsReadMutation({
+        notificationIds: unreadIds,
+      }).unwrap()
+
+      toast.success('All notifications marked as read')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Unable to mark all as read.'))
+    }
   }
 
-  const markNotificationAsRead = (id: number) => {
-    setNotifications((current) =>
-      current.map((item) => (item.id === id ? { ...item, read: true } : item)),
-    )
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await markNotificationAsReadMutation(id).unwrap()
+    } catch {
+      // Intentionally silent to avoid noisy toasts for quick inbox interactions.
+    }
   }
 
   const loadOlderNotifications = () => {
-    toast.success('Older notifications are mocked in this demo')
+    toast.success('Pagination support will be enabled in the next iteration.')
+  }
+
+  if (isLoading) {
+    return (
+      <section className="rounded-xl border border-neutral-200 bg-white p-6">
+        <p className="text-sm text-slate-500">Loading notifications...</p>
+      </section>
+    )
   }
 
   return (
@@ -95,20 +146,23 @@ export default function NotificationsPage() {
             </h1>
             <p className="max-w-sm text-sm text-slate-600">
               You have {unreadCount} unread updates across your curated library
-              and system alerts.
+              and system alerts from the backend.
             </p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={markAllAsRead}
+                disabled={isMarkingAll || unreadCount === 0}
                 className="h-10 rounded-md bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700"
               >
-                Mark all as read
+                {isMarkingAll ? 'Updating...' : 'Mark all as read'}
               </button>
               <button
                 type="button"
                 onClick={() =>
-                  toast.message('Notification preferences are mocked')
+                  toast.message(
+                    'Notification preferences are in Settings > Preferences.',
+                  )
                 }
                 className="h-10 rounded-md hover:bg-brand-200 px-4 text-xs font-semibold text-neutral-600 hover:text-brand-600"
               >
@@ -152,7 +206,7 @@ export default function NotificationsPage() {
       </div>
 
       <div className="space-y-9">
-        {(['Today', 'Yesterday'] as const).map((group) => {
+        {(['Today', 'Earlier'] as const).map((group) => {
           const items = notificationsByGroup.get(group) ?? []
 
           if (!items.length) {
@@ -227,7 +281,7 @@ export default function NotificationsPage() {
                             <Link
                               href={detailsHref}
                               onClick={() =>
-                                markNotificationAsRead(notification.id)
+                                void markNotificationAsRead(notification.id)
                               }
                               className="inline-flex items-center gap-1 text-[#0e7178] hover:text-[#0a666b]"
                             >
@@ -261,6 +315,14 @@ export default function NotificationsPage() {
             </section>
           )
         })}
+
+        {!notifications.length ? (
+          <section className="rounded-xl border border-slate-200 bg-white p-6">
+            <p className="text-sm text-slate-500">
+              Your inbox is empty right now.
+            </p>
+          </section>
+        ) : null}
       </div>
 
       <div className="flex justify-center pt-1">

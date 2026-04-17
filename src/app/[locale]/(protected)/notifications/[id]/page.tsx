@@ -1,26 +1,54 @@
+'use client'
+
 import { ArrowLeft, Bell, Clock3 } from 'lucide-react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { useEffect, useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
+import {
+  useGetMyNotificationsQuery,
+  useMarkNotificationAsReadMutation,
+} from '@/store/features/notifications/notificationsApi'
 
-import { notificationItems } from '../data'
+import { toNotificationItem } from '../data'
 
-type NotificationDetailsPageProps = {
-  params: Promise<{
-    locale: string
-    id: string
-  }>
-}
+export default function NotificationDetailsPage() {
+  const params = useParams<{ locale: string; id: string }>()
+  const locale = params?.locale ?? 'en'
+  const id = params?.id ?? ''
 
-export default async function NotificationDetailsPage({
-  params,
-}: NotificationDetailsPageProps) {
-  const { locale, id } = await params
-  const notificationId = Number(id)
-
-  const notification = notificationItems.find(
-    (item) => item.id === notificationId,
+  const { data: notificationsResponse, isLoading } = useGetMyNotificationsQuery(
+    {
+      page: 1,
+      limit: 100,
+    },
   )
+  const [markNotificationAsReadMutation] = useMarkNotificationAsReadMutation()
+
+  const notification = useMemo(() => {
+    const match = notificationsResponse?.data?.find((item) => item.id === id)
+
+    if (!match) {
+      return null
+    }
+
+    return toNotificationItem(match)
+  }, [notificationsResponse, id])
+
+  useEffect(() => {
+    if (notification && !notification.read) {
+      void markNotificationAsReadMutation(notification.id)
+    }
+  }, [notification, markNotificationAsReadMutation])
+
+  if (isLoading) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <p className="text-sm text-slate-500">Loading notification...</p>
+      </section>
+    )
+  }
 
   if (!notification) {
     return (

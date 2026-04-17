@@ -50,6 +50,76 @@
             "returnDashboard": "Return to dashboard"
         }
     },
+    "dashboard": {
+        "sidebar": {
+            "brandTagline": "Digital Curator",
+            "closeSidebar": "Close sidebar",
+            "help": "Help center",
+            "badges": {
+                "planned": "Soon"
+            },
+            "sections": {
+                "discover": "Discover",
+                "account": "Account"
+            },
+            "items": {
+                "dashboard": "Dashboard",
+                "search": "Search",
+                "library": "Library",
+                "currentlyReading": "Currently reading",
+                "readingHistory": "Reading history",
+                "wishlist": "Wishlist",
+                "bookmarks": "Bookmarks",
+                "notifications": "Notifications",
+                "settings": "Settings",
+                "profile": "Profile identity",
+                "security": "Security",
+                "preferences": "Preferences",
+                "subscription": "Subscription",
+                "danger": "Danger zone"
+            },
+            "upgrade": {
+                "title": "Upgrade to Premium",
+                "description": "Unlock unlimited access to the full Bengali digital archive.",
+                "action": "Upgrade now"
+            }
+        },
+        "header": {
+            "openSidebar": "Open sidebar menu",
+            "searchPlaceholder": "Search books, authors, collections...",
+            "searchShortcut": "Ctrl + K",
+            "toggleTheme": "Toggle theme",
+            "openNotifications": "Open notifications",
+            "titles": {
+                "dashboard": "My Dashboard",
+                "notifications": "Notifications",
+                "notificationDetails": "Notification details",
+                "profile": "Profile settings",
+                "security": "Security settings",
+                "preferences": "Preference settings",
+                "subscription": "Subscription settings",
+                "danger": "Danger zone",
+                "library": "My library",
+                "reading": "Reading activity",
+                "search": "Search"
+            }
+        },
+        "userMenu": {
+            "open": "Open user menu",
+            "guest": "Reader",
+            "noEmail": "No email added",
+            "logout": "Logout",
+            "loggingOut": "Logging out...",
+            "logoutSuccess": "Logged out",
+            "logoutFailed": "Unable to logout right now.",
+            "links": {
+                "profile": "Profile",
+                "security": "Security",
+                "preferences": "Preferences",
+                "subscription": "Subscription"
+            }
+        }
+    },
     "subscription": {
         "title": "Subscription",
         "subtitle": "Manage your current plan, cancellation, renewal, retry recovery, and plan changes.",

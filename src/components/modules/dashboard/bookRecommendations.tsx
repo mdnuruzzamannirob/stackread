@@ -1,13 +1,13 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, BookOpen } from 'lucide-react'
+import { BookOpen } from 'lucide-react'
 import Link from 'next/link'
 
 interface BookRecommendation {
   id: string
   title: string
   author: string
-  cover?: string
+  coverUrl?: string | null
   genre: string
   rating: number
   description: string
@@ -16,77 +16,54 @@ interface BookRecommendation {
 interface BookRecommendationsProps {
   locale: string
   recommendations?: BookRecommendation[]
+  isLoading?: boolean
+  hasError?: boolean
 }
 
 export function BookRecommendations({
   locale,
-  recommendations = [
-    {
-      id: '1',
-      title: 'The Little Prince',
-      author: 'Antoine de Saint-Exupéry',
-      genre: 'Classic',
-      rating: 4.9,
-      description:
-        'A delicate story of friendship, wonder, and what truly matters.',
-    },
-    {
-      id: '2',
-      title: 'Sapiens',
-      author: 'Yuval Noah Harari',
-      genre: 'History',
-      rating: 4.8,
-      description:
-        'A concise history of humankind written with bold perspective.',
-    },
-    {
-      id: '3',
-      title: 'The Alchemist',
-      author: 'Paulo Coelho',
-      genre: 'Philosophy',
-      rating: 4.8,
-      description:
-        'A timeless reminder to follow the path that calls you most deeply.',
-    },
-  ],
+  recommendations = [],
+  isLoading = false,
+  hasError = false,
 }: BookRecommendationsProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Editor's Choice For You
+            Recommended For You
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Based on your recent interest in classic Bengali prose and modernist
-            poetry, our curators suggest these limited editions.
+            Personalized picks generated from your reading behavior and catalog
+            affinity.
           </p>
         </div>
 
         <Link
-          href={`/${locale}/dashboard#recommendations`}
+          href={`/${locale}/search`}
           className="hidden text-sm font-medium text-primary transition hover:text-primary-700 md:block"
         >
           View all
         </Link>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex size-10 items-center justify-center rounded-2xl border border-border bg-white text-slate-700 transition hover:border-primary/25 hover:text-primary"
-            aria-label="Previous recommendations"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          <button
-            type="button"
-            className="flex size-10 items-center justify-center rounded-2xl border border-border bg-white text-slate-700 transition hover:border-primary/25 hover:text-primary"
-            aria-label="Next recommendations"
-          >
-            <ArrowRight className="size-4" />
-          </button>
-        </div>
       </div>
+
+      {isLoading ? (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+          Loading recommendations...
+        </p>
+      ) : null}
+
+      {hasError ? (
+        <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-5 text-sm text-red-600">
+          Unable to load recommendations right now.
+        </p>
+      ) : null}
+
+      {!isLoading && !hasError && !recommendations.length ? (
+        <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+          Recommendations will appear after a little more reading activity.
+        </p>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {recommendations.map((book) => (
@@ -95,8 +72,14 @@ export function BookRecommendations({
             className="group overflow-hidden rounded-2xl border border-white/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="grid grid-cols-[96px_1fr] gap-4">
-              <div className="flex h-36 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-[#f0d7c2] to-[#fff7ef] ring-1 ring-slate-100">
-                <BookOpen className="size-9 text-slate-500/60 transition group-hover:text-primary" />
+              <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-[#f0d7c2] to-[#fff7ef] ring-1 ring-slate-100">
+                {book.coverUrl ? (
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${book.coverUrl})` }}
+                  />
+                ) : null}
+                <BookOpen className="relative z-10 size-9 text-slate-500/60 transition group-hover:text-primary" />
               </div>
 
               <div className="flex flex-col">
@@ -118,6 +101,13 @@ export function BookRecommendations({
                 <p className="mt-3 text-xs leading-5 text-slate-500">
                   {book.description}
                 </p>
+
+                <Link
+                  href={`/${locale}/books/${book.id}`}
+                  className="mt-3 inline-flex text-xs font-semibold text-brand-700 transition hover:text-brand-800"
+                >
+                  Open details
+                </Link>
               </div>
             </div>
           </div>

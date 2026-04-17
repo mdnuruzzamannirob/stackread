@@ -50,6 +50,76 @@
             "returnDashboard": "ড্যাশবোর্ডে ফিরে যান"
         }
     },
+    "dashboard": {
+        "sidebar": {
+            "brandTagline": "ডিজিটাল কিউরেটর",
+            "closeSidebar": "সাইডবার বন্ধ করুন",
+            "help": "সহায়তা কেন্দ্র",
+            "badges": {
+                "planned": "শীঘ্রই"
+            },
+            "sections": {
+                "discover": "ডিসকভার",
+                "account": "অ্যাকাউন্ট"
+            },
+            "items": {
+                "dashboard": "ড্যাশবোর্ড",
+                "search": "সার্চ",
+                "library": "লাইব্রেরি",
+                "currentlyReading": "এখন পড়ছি",
+                "readingHistory": "পড়ার ইতিহাস",
+                "wishlist": "উইশলিস্ট",
+                "bookmarks": "বুকমার্কস",
+                "notifications": "নোটিফিকেশন",
+                "settings": "সেটিংস",
+                "profile": "প্রোফাইল পরিচিতি",
+                "security": "নিরাপত্তা",
+                "preferences": "পছন্দসমূহ",
+                "subscription": "সাবস্ক্রিপশন",
+                "danger": "ডেঞ্জার জোন"
+            },
+            "upgrade": {
+                "title": "প্রিমিয়ামে আপগ্রেড করুন",
+                "description": "বাংলা ডিজিটাল আর্কাইভে সীমাহীন অ্যাক্সেস আনলক করুন।",
+                "action": "এখনই আপগ্রেড"
+            }
+        },
+        "header": {
+            "openSidebar": "সাইডবার মেনু খুলুন",
+            "searchPlaceholder": "বই, লেখক, কালেকশন সার্চ করুন...",
+            "searchShortcut": "Ctrl + K",
+            "toggleTheme": "থিম পরিবর্তন",
+            "openNotifications": "নোটিফিকেশন খুলুন",
+            "titles": {
+                "dashboard": "আমার ড্যাশবোর্ড",
+                "notifications": "নোটিফিকেশন",
+                "notificationDetails": "নোটিফিকেশন বিস্তারিত",
+                "profile": "প্রোফাইল সেটিংস",
+                "security": "নিরাপত্তা সেটিংস",
+                "preferences": "পছন্দ সেটিংস",
+                "subscription": "সাবস্ক্রিপশন সেটিংস",
+                "danger": "ডেঞ্জার জোন",
+                "library": "আমার লাইব্রেরি",
+                "reading": "পড়ার কার্যক্রম",
+                "search": "সার্চ"
+            }
+        },
+        "userMenu": {
+            "open": "ইউজার মেনু খুলুন",
+            "guest": "রিডার",
+            "noEmail": "ইমেইল যোগ করা হয়নি",
+            "logout": "লগআউট",
+            "loggingOut": "লগআউট হচ্ছে...",
+            "logoutSuccess": "লগআউট সফল হয়েছে",
+            "logoutFailed": "এই মুহূর্তে লগআউট করা যাচ্ছে না।",
+            "links": {
+                "profile": "প্রোফাইল",
+                "security": "নিরাপত্তা",
+                "preferences": "পছন্দসমূহ",
+                "subscription": "সাবস্ক্রিপশন"
+            }
+        }
+    },
     "subscription": {
         "title": "সাবস্ক্রিপশন",
         "subtitle": "আপনার বর্তমান প্ল্যান, বাতিল, নবায়ন, রিট্রাই রিকভারি এবং প্ল্যান পরিবর্তন পরিচালনা করুন।",

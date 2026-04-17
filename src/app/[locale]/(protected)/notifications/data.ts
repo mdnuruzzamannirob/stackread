@@ -1,12 +1,20 @@
+import type {
+  UserNotification,
+  UserNotificationType,
+} from '@/store/features/notifications/notificationsApi'
+
 export type NotificationFilter =
   | 'All'
-  | 'New Releases'
+  | 'Book Updates'
+  | 'Subscription'
   | 'System Updates'
   | 'Reminders'
+  | 'Promotions'
 
 export type NotificationItem = {
-  id: number
-  group: 'Today' | 'Yesterday'
+  id: string
+  type: UserNotificationType
+  group: 'Today' | 'Earlier'
   filter: Exclude<NotificationFilter, 'All'>
   badge: string
   timestamp: string
@@ -20,83 +28,165 @@ export type NotificationItem = {
   secondaryAction: string
 }
 
-export const notificationFilters: Array<{
-  label: NotificationFilter
-  count: number
+const relativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+
+const relativeTimeDivisors: Array<{
+  unit: Intl.RelativeTimeFormatUnit
+  milliseconds: number
 }> = [
-  { label: 'All', count: 4 },
-  { label: 'New Releases', count: 2 },
-  { label: 'System Updates', count: 1 },
-  { label: 'Reminders', count: 1 },
+  { unit: 'day', milliseconds: 24 * 60 * 60 * 1000 },
+  { unit: 'hour', milliseconds: 60 * 60 * 1000 },
+  { unit: 'minute', milliseconds: 60 * 1000 },
 ]
 
-export const notificationItems: NotificationItem[] = [
-  {
-    id: 1,
-    group: 'Today',
-    filter: 'New Releases',
-    badge: 'New Release',
-    timestamp: '2 hours ago',
-    title: 'Fresh Chapter Available: "The Midnight Library of Bengal"',
-    description:
-      'Author Anirban Roy has just uploaded Chapter 12: The Silent Echo. Start reading now to stay updated.',
-    detailTitle: 'Chapter 12 is now available',
-    detailBody:
-      'A new chapter has been published for The Midnight Library of Bengal. Continue your reading journey and stay synced with the latest story arc from author Anirban Roy.',
-    read: false,
-    icon: 'book',
-    primaryAction: 'Read Now',
+const mapTypeToFilter = (
+  type: UserNotificationType,
+): Exclude<NotificationFilter, 'All'> => {
+  switch (type) {
+    case 'book_available':
+      return 'Book Updates'
+    case 'subscription_expiring':
+    case 'subscription_renewed':
+      return 'Subscription'
+    case 'review_response':
+      return 'Reminders'
+    case 'promotion_new':
+      return 'Promotions'
+    default:
+      return 'System Updates'
+  }
+}
+
+const mapTypeToBadge = (type: UserNotificationType) => {
+  switch (type) {
+    case 'book_available':
+      return 'New Release'
+    case 'subscription_expiring':
+      return 'Renewal'
+    case 'subscription_renewed':
+      return 'Subscription'
+    case 'review_response':
+      return 'Reminder'
+    case 'promotion_new':
+      return 'Promotion'
+    default:
+      return 'System'
+  }
+}
+
+const mapTypeToIcon = (
+  type: UserNotificationType,
+): NotificationItem['icon'] => {
+  switch (type) {
+    case 'book_available':
+      return 'book'
+    case 'review_response':
+    case 'subscription_expiring':
+      return 'clock'
+    case 'system_message':
+      return 'shield'
+    default:
+      return 'sparkles'
+  }
+}
+
+const mapTypeToPrimaryAction = (type: UserNotificationType) => {
+  switch (type) {
+    case 'book_available':
+      return 'Read now'
+    case 'subscription_expiring':
+      return 'Renew now'
+    case 'subscription_renewed':
+      return 'View details'
+    case 'review_response':
+      return 'Check activity'
+    case 'promotion_new':
+      return 'Claim offer'
+    default:
+      return 'Open notification'
+  }
+}
+
+const toRelativeTime = (dateString: string) => {
+  const date = new Date(dateString)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Just now'
+  }
+
+  const now = Date.now()
+  const diff = date.getTime() - now
+  const absolute = Math.abs(diff)
+
+  for (const entry of relativeTimeDivisors) {
+    if (absolute >= entry.milliseconds) {
+      return relativeFormatter.format(
+        Math.round(diff / entry.milliseconds),
+        entry.unit,
+      )
+    }
+  }
+
+  return 'Just now'
+}
+
+const toGroup = (dateString: string): NotificationItem['group'] => {
+  const date = new Date(dateString)
+  const now = new Date()
+
+  if (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  ) {
+    return 'Today'
+  }
+
+  return 'Earlier'
+}
+
+export const toNotificationItem = (
+  notification: UserNotification,
+): NotificationItem => {
+  return {
+    id: notification.id,
+    type: notification.type,
+    group: toGroup(notification.createdAt),
+    filter: mapTypeToFilter(notification.type),
+    badge: mapTypeToBadge(notification.type),
+    timestamp: toRelativeTime(notification.createdAt),
+    title: notification.title,
+    description: notification.body,
+    detailTitle: notification.title,
+    detailBody: notification.body,
+    read: notification.read,
+    icon: mapTypeToIcon(notification.type),
+    primaryAction: mapTypeToPrimaryAction(notification.type),
     secondaryAction: 'Dismiss',
-  },
-  {
-    id: 2,
-    group: 'Today',
-    filter: 'System Updates',
-    badge: 'System',
-    timestamp: '5 hours ago',
-    title: 'Security Alert: New Login Detected',
-    description:
-      'A new login was recorded from a Chrome browser on Windows 11. Was this you?',
-    detailTitle: 'Suspicious sign-in activity detected',
-    detailBody:
-      'We detected a new sign-in from Chrome on Windows 11. If this was not you, please secure your account immediately by resetting your password and reviewing active sessions.',
-    read: false,
-    icon: 'shield',
-    primaryAction: 'Secure Account',
-    secondaryAction: 'Yes, it was me',
-  },
-  {
-    id: 3,
-    group: 'Yesterday',
-    filter: 'Reminders',
-    badge: 'Reminder',
-    timestamp: '1 day ago',
-    title: 'Pick up where you left off',
-    description:
-      'You have not read "The River of Dreams" in 3 days. Your last bookmark is at page 142.',
-    detailTitle: 'Continue your reading streak',
-    detailBody:
-      'Your current title has been waiting for you. Jump back to your saved bookmark and continue from page 142 to keep your reading momentum.',
-    read: false,
-    icon: 'clock',
-    primaryAction: 'Resume Reading',
-    secondaryAction: 'Later',
-  },
-  {
-    id: 4,
-    group: 'Yesterday',
-    filter: 'New Releases',
-    badge: 'Premium',
-    timestamp: '1 day ago',
-    title: 'Annual Subscription Discount',
-    description:
-      'Upgrade to our annual plan today and get 3 months of StackRead Premium for free. Limited time offer.',
-    detailTitle: 'Limited-time annual plan offer',
-    detailBody:
-      'Get more value with an annual StackRead Premium subscription and unlock 3 bonus months at no extra cost. This offer is valid for a limited period only.',
-    read: false,
-    icon: 'sparkles',
-    primaryAction: 'Claim Offer',
-    secondaryAction: 'Not now',
-  },
-]
+  }
+}
+
+export const buildNotificationFilters = (items: NotificationItem[]) => {
+  const orderedLabels: NotificationFilter[] = [
+    'All',
+    'Book Updates',
+    'Subscription',
+    'System Updates',
+    'Reminders',
+    'Promotions',
+  ]
+
+  return orderedLabels.map((label) => {
+    if (label === 'All') {
+      return {
+        label,
+        count: items.length,
+      }
+    }
+
+    return {
+      label,
+      count: items.filter((item) => item.filter === label).length,
+    }
+  })
+}
