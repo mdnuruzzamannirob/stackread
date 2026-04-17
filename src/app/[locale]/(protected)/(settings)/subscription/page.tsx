@@ -106,12 +106,24 @@ export default function SubscriptionPage() {
   const [cancelImmediately, setCancelImmediately] = useState(false)
 
   const { data: subscriptionResponse, isFetching: isSubscriptionLoading } =
-    useGetMySubscriptionQuery()
+    useGetMySubscriptionQuery(undefined, {
+      pollingInterval: 15_000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    })
   const { data: plansResponse, isFetching: isPlansLoading } = useGetPlansQuery()
   const { data: paymentMethodResponse, isFetching: isPaymentMethodLoading } =
-    useGetMyPaymentMethodQuery()
+    useGetMyPaymentMethodQuery(undefined, {
+      pollingInterval: 15_000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    })
   const { data: paymentsResponse, isFetching: isPaymentHistoryLoading } =
-    useGetMyPaymentsQuery()
+    useGetMyPaymentsQuery(undefined, {
+      pollingInterval: 20_000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    })
 
   const [cancelMySubscription, { isLoading: isCancelling }] =
     useCancelMySubscriptionMutation()
@@ -162,6 +174,15 @@ export default function SubscriptionPage() {
   const latestFailedPayment = paymentHistory.find(
     (payment) => payment.status === 'failed',
   )
+  const paymentMethodShortLabel =
+    paymentMethod?.brand && paymentMethod?.last4
+      ? `${paymentMethod.brand} | **** ${paymentMethod.last4}`
+      : paymentMethod?.label ?? 'No payment method on file'
+  const paymentMethodExpiryLabel =
+    typeof paymentMethod?.expMonth === 'number' &&
+    typeof paymentMethod?.expYear === 'number'
+      ? `Expires ${String(paymentMethod.expMonth).padStart(2, '0')}/${paymentMethod.expYear}`
+      : null
 
   const isBusy =
     isCancelling ||
@@ -506,8 +527,18 @@ export default function SubscriptionPage() {
                 }`}
               >
                 <p className="text-sm font-semibold text-slate-800">
-                  {paymentMethod?.label ?? 'No payment method on file'}
+                  {paymentMethodShortLabel}
                 </p>
+                {paymentMethodExpiryLabel ? (
+                  <p className="mt-1 text-xs font-medium text-slate-600">
+                    {paymentMethodExpiryLabel}
+                  </p>
+                ) : null}
+                {paymentMethod?.holderName ? (
+                  <p className="text-xs text-slate-500">
+                    Card holder: {paymentMethod.holderName}
+                  </p>
+                ) : null}
                 <p className="text-xs text-slate-500">
                   {paymentMethod?.status === 'expired'
                     ? 'Card is expired. Update now to avoid failed renewals.'
@@ -523,7 +554,7 @@ export default function SubscriptionPage() {
                 type="button"
                 onClick={() => void handleOpenPaymentMethodPortal()}
                 disabled={isOpeningPortal}
-                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 transition hover:text-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-3 inline-flex items-center gap-2 rounded-md bg-linear-to-r from-[#0b7b8b] via-[#0f8596] to-[#13a6b8] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isOpeningPortal ? <BusyIcon /> : null}
                 Update Payment Method

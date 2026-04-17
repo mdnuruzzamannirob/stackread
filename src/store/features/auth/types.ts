@@ -86,3 +86,17 @@ export type LoginHistoryRow = {
   status: 'current' | 'successful'
   createdAt: string
 }
+
+export type LoginHistoryPagination = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+export type LoginHistoryPayload = {
+  items: LoginHistoryRow[]
+  pagination: LoginHistoryPagination
+}

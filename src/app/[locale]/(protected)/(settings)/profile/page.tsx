@@ -1,7 +1,7 @@
 'use client'
 
-import { Camera, UserRound } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { Camera, ImagePlus, UploadCloud, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { getApiErrorMessage } from '@/lib/api/error-message'
@@ -15,7 +15,6 @@ import {
   BusyIcon,
   COUNTRY_OPTIONS,
   createInitialProfileState,
-  isValidUrl,
   Modal,
   type ProfileFormState,
   SettingsCard,
@@ -23,6 +22,9 @@ import {
 } from '@/components/settings/SettingsShared'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MAX_UPLOAD_IMAGE_BYTES = 512 * 1024
+const MAX_IMAGE_DIMENSION = 1024
+const ACCEPTED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
 const resolveInitials = (
   firstName: string,
@@ -53,7 +55,11 @@ export default function ProfilePage() {
     useState<ProfileFormState>(createInitialProfileState())
 
   const [showPhotoDialog, setShowPhotoDialog] = useState(false)
-  const [profilePictureInput, setProfilePictureInput] = useState('')
+  const [photoPreview, setPhotoPreview] = useState('')
+  const [photoFileBase64, setPhotoFileBase64] = useState('')
+  const [photoFileName, setPhotoFileName] = useState('')
+  const [isPhotoDragOver, setIsPhotoDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const user = meResponse?.data
@@ -71,9 +77,9 @@ export default function ProfilePage() {
       address: user.address ?? '',
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProfileState(nextState)
     setInitialProfileState(nextState)
-    setProfilePictureInput(user.profilePicture ?? '')
   }, [meResponse?.data])
 
   const selectedCountry = useMemo(() => {
@@ -142,18 +148,130 @@ export default function ProfilePage() {
     }
   }
 
-  const handleSavePhoto = async () => {
-    const nextPicture = profilePictureInput.trim()
+  const resetPhotoSelection = () => {
+    setPhotoPreview('')
+    setPhotoFileBase64('')
+    setPhotoFileName('')
+    setIsPhotoDragOver(false)
 
-    if (nextPicture && !isValidUrl(nextPicture)) {
-      toast.error('Profile picture must be a valid URL.')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result)
+          return
+        }
+
+        reject(new Error('Unable to read image file.'))
+      }
+      reader.onerror = () => reject(new Error('Unable to read image file.'))
+      reader.readAsDataURL(file)
+    })
+
+  const loadImageFromDataUrl = (dataUrl: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const image = new window.Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error('Unable to load selected image.'))
+      image.src = dataUrl
+    })
+
+  const estimateDataUrlBytes = (dataUrl: string): number => {
+    const payload = dataUrl.split(',')[1] ?? ''
+    return Math.floor((payload.length * 3) / 4)
+  }
+
+  const normalizeImageForUpload = async (
+    file: File,
+  ): Promise<{ dataUrl: string; fileName: string }> => {
+    const originalDataUrl = await readFileAsDataUrl(file)
+    const image = await loadImageFromDataUrl(originalDataUrl)
+
+    const maxDimension = Math.max(image.width, image.height)
+    const scale = maxDimension > MAX_IMAGE_DIMENSION
+      ? MAX_IMAGE_DIMENSION / maxDimension
+      : 1
+
+    const width = Math.max(1, Math.round(image.width * scale))
+    const height = Math.max(1, Math.round(image.height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('Unable to prepare image upload.')
+    }
+
+    context.drawImage(image, 0, 0, width, height)
+
+    let quality = 0.9
+    let output = canvas.toDataURL('image/jpeg', quality)
+
+    while (estimateDataUrlBytes(output) > MAX_UPLOAD_IMAGE_BYTES && quality > 0.45) {
+      quality -= 0.1
+      output = canvas.toDataURL('image/jpeg', quality)
+    }
+
+    if (estimateDataUrlBytes(output) > MAX_UPLOAD_IMAGE_BYTES) {
+      throw new Error('Image is too large. Please choose a smaller image.')
+    }
+
+    const normalizedName =
+      file.name.replace(/\.[a-zA-Z0-9]+$/, '') || 'profile-picture'
+
+    return {
+      dataUrl: output,
+      fileName: `${normalizedName}.jpg`,
+    }
+  }
+
+  const handleSelectPhotoFile = async (file: File) => {
+    if (!ACCEPTED_IMAGE_MIME_TYPES.includes(file.type)) {
+      toast.error('Please upload a JPG, PNG, WEBP, or GIF image.')
       return
     }
 
     try {
-      await updateMyProfilePicture({
-        profilePicture: nextPicture,
+      const normalized = await normalizeImageForUpload(file)
+      setPhotoPreview(normalized.dataUrl)
+      setPhotoFileBase64(normalized.dataUrl)
+      setPhotoFileName(normalized.fileName)
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Unable to prepare image upload.'))
+    }
+  }
+
+  const handleOpenPhotoDialog = () => {
+    resetPhotoSelection()
+    setShowPhotoDialog(true)
+  }
+
+  const handleClosePhotoDialog = () => {
+    resetPhotoSelection()
+    setShowPhotoDialog(false)
+  }
+
+  const handleSavePhoto = async () => {
+    if (!photoFileBase64) {
+      toast.error('Select an image from your device first.')
+      return
+    }
+
+    try {
+      const response = await updateMyProfilePicture({
+        fileBase64: photoFileBase64,
+        fileName: photoFileName || 'profile-picture.jpg',
       }).unwrap()
+
+      const nextPicture = response.data.profilePicture ?? ''
 
       setProfileState((previous) => ({
         ...previous,
@@ -163,7 +281,7 @@ export default function ProfilePage() {
         ...previous,
         profilePicture: nextPicture,
       }))
-      setShowPhotoDialog(false)
+      handleClosePhotoDialog()
       toast.success('Profile picture updated successfully.')
     } catch (error) {
       toast.error(
@@ -211,7 +329,7 @@ export default function ProfilePage() {
 
               <button
                 type="button"
-                onClick={() => setShowPhotoDialog(true)}
+                onClick={handleOpenPhotoDialog}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 transition hover:text-brand-800"
               >
                 <Camera className="size-3.5" />
@@ -328,36 +446,90 @@ export default function ProfilePage() {
       <Modal
         open={showPhotoDialog}
         title="Update Photo"
-        subtitle="Paste a profile image URL to update your profile picture."
-        onClose={() => setShowPhotoDialog(false)}
+        subtitle="Drag and drop an image, or choose one from your computer."
+        onClose={handleClosePhotoDialog}
       >
         <div className="space-y-3">
-          <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[1.8px] text-slate-500">
-              Profile Picture URL
-            </span>
-            <input
-              value={profilePictureInput}
-              onChange={(event) => setProfilePictureInput(event.target.value)}
-              placeholder="https://example.com/photo.jpg"
-              className="h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none transition focus:border-brand-500"
-            />
-          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_MIME_TYPES.join(',')}
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) {
+                void handleSelectPhotoFile(file)
+              }
+            }}
+          />
+
+          <div
+            onDragOver={(event) => {
+              event.preventDefault()
+              setIsPhotoDragOver(true)
+            }}
+            onDragLeave={(event) => {
+              event.preventDefault()
+              setIsPhotoDragOver(false)
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              setIsPhotoDragOver(false)
+              const file = event.dataTransfer.files?.[0]
+              if (file) {
+                void handleSelectPhotoFile(file)
+              }
+            }}
+            className={`rounded-lg border border-dashed p-4 text-center transition ${
+              isPhotoDragOver
+                ? 'border-brand-500 bg-brand-50'
+                : 'border-slate-300 bg-slate-50'
+            }`}
+          >
+            <UploadCloud className="mx-auto size-5 text-slate-500" />
+            <p className="mt-2 text-sm font-semibold text-slate-700">
+              Drop your profile photo here
+            </p>
+            <p className="text-xs text-slate-500">or choose one manually</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              <ImagePlus className="size-3.5" />
+              Choose Image
+            </button>
+            <p className="mt-2 text-[11px] text-slate-500">
+              JPG, PNG, WEBP, or GIF. Images are auto-optimized up to 512KB.
+            </p>
+          </div>
 
           <div className="rounded-lg bg-slate-100 p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Preview
             </p>
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-slate-200">
-              {profilePictureInput.trim() ? (
-                <img
-                  src={profilePictureInput.trim()}
-                  alt="Profile preview"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <UserRound className="size-4 text-slate-500" />
-              )}
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-slate-200">
+                {photoPreview || profileState.profilePicture ? (
+                  <img
+                    src={photoPreview || profileState.profilePicture}
+                    alt="Profile preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserRound className="size-4 text-slate-500" />
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-700">
+                  {photoFileName || 'No file selected'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {photoFileBase64
+                    ? 'Ready to upload.'
+                    : 'Select an image to enable upload.'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -365,7 +537,7 @@ export default function ProfilePage() {
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
-            onClick={() => setShowPhotoDialog(false)}
+            onClick={handleClosePhotoDialog}
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
           >
             Cancel
@@ -373,7 +545,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => void handleSavePhoto()}
-            disabled={isUpdatingPicture}
+            disabled={!photoFileBase64 || isUpdatingPicture}
             className="inline-flex items-center gap-2 rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isUpdatingPicture ? <BusyIcon /> : null}

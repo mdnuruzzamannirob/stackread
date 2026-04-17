@@ -1,7 +1,7 @@
 import type { ApiEnvelope } from '@/lib/api/types'
 import { baseApi } from '@/store/baseApi'
 import type {
-  LoginHistoryRow,
+  LoginHistoryPayload,
   LoginPayload,
   RegisterResponse,
   TwoFactorBackupCodesPayload,
@@ -230,14 +230,30 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
     loginHistory: builder.query<
-      ApiEnvelope<LoginHistoryRow[]>,
-      { limit?: number } | void
+      ApiEnvelope<LoginHistoryPayload>,
+      { limit?: number; page?: number } | void
     >({
       query: (params) => ({
-        url:
-          typeof params === 'object' && typeof params?.limit === 'number'
-            ? `/auth/me/login-history?limit=${encodeURIComponent(String(params.limit))}`
-            : '/auth/me/login-history',
+        url: (() => {
+          if (typeof params !== 'object') {
+            return '/auth/me/login-history'
+          }
+
+          const query = new URLSearchParams()
+
+          if (typeof params.limit === 'number') {
+            query.set('limit', String(params.limit))
+          }
+
+          if (typeof params.page === 'number') {
+            query.set('page', String(params.page))
+          }
+
+          const suffix = query.toString()
+          return suffix
+            ? `/auth/me/login-history?${suffix}`
+            : '/auth/me/login-history'
+        })(),
         method: 'GET',
       }),
       providesTags: ['Auth'],
@@ -259,7 +275,7 @@ export const authApi = baseApi.injectEndpoints({
     }),
     updateMyProfilePicture: builder.mutation<
       ApiEnvelope<UserProfile>,
-      { profilePicture?: string }
+      { profilePicture?: string; fileBase64?: string; fileName?: string }
     >({
       query: (body) => ({
         url: '/auth/me/profile-picture',

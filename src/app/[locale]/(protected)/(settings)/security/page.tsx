@@ -18,7 +18,6 @@ import {
   useEnableTwoFactorMutation,
   useLoginHistoryQuery,
   useMeQuery,
-  useRegenerateBackupCodesMutation,
   useSendTwoFactorSetupEmailOtpMutation,
   useVerifyTwoFactorMutation,
 } from '@/store/features/auth/authApi'
@@ -38,7 +37,7 @@ type TwoFactorSetupData = {
   backupCodes: string[]
 }
 
-const RECENT_LOGINS_LIMIT = 8
+const RECENT_LOGINS_PAGE_SIZE = 10
 
 const formatHistoryDate = (value: string) => {
   const parsed = new Date(value)
@@ -119,8 +118,12 @@ function SecurityFeatureRow({
 
 export default function SecurityPage() {
   const { data: meResponse } = useMeQuery()
+  const [loginHistoryPage, setLoginHistoryPage] = useState(1)
   const { data: loginHistoryResponse, isFetching: isLoadingHistory } =
-    useLoginHistoryQuery({ limit: RECENT_LOGINS_LIMIT })
+    useLoginHistoryQuery({
+      page: loginHistoryPage,
+      limit: RECENT_LOGINS_PAGE_SIZE,
+    })
 
   const [changeMyPassword, { isLoading: isUpdatingPassword }] =
     useChangeMyPasswordMutation()
@@ -132,8 +135,6 @@ export default function SecurityPage() {
     useSendTwoFactorSetupEmailOtpMutation()
   const [disableTwoFactor, { isLoading: isDisablingTwoFactor }] =
     useDisableTwoFactorMutation()
-  const [regenerateBackupCodes, { isLoading: isRegeneratingBackupCodes }] =
-    useRegenerateBackupCodesMutation()
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -143,7 +144,6 @@ export default function SecurityPage() {
   const [showEmailSetupModal, setShowEmailSetupModal] = useState(false)
   const [showDisableTwoFactorModal, setShowDisableTwoFactorModal] =
     useState(false)
-  const [showBackupCodesModal, setShowBackupCodesModal] = useState(false)
 
   const [totpPassword, setTotpPassword] = useState('')
   const [totpOtp, setTotpOtp] = useState('')
@@ -157,13 +157,19 @@ export default function SecurityPage() {
 
   const [disablePassword, setDisablePassword] = useState('')
 
-  const [backupCodePassword, setBackupCodePassword] = useState('')
-  const [latestBackupCodes, setLatestBackupCodes] = useState<string[] | null>(
-    null,
-  )
-
   const twoFactorEnabled = Boolean(meResponse?.data.twoFactorEnabled)
-  const loginHistory = loginHistoryResponse?.data ?? []
+  const loginHistoryData = loginHistoryResponse?.data
+  const loginHistory = loginHistoryData?.items ?? []
+  const loginHistoryPagination = loginHistoryData?.pagination
+
+  const visibleStart =
+    loginHistory.length > 0
+      ? ((loginHistoryPagination?.page ?? 1) - 1) *
+          (loginHistoryPagination?.limit ?? RECENT_LOGINS_PAGE_SIZE) +
+        1
+      : 0
+  const visibleEnd =
+    loginHistory.length > 0 ? visibleStart + loginHistory.length - 1 : 0
 
   const qrImageSrc = useMemo(() => {
     if (!totpSetupData?.qrCodeUrl) return ''
@@ -340,27 +346,6 @@ export default function SecurityPage() {
     }
   }
 
-  const handleRegenerateBackupCodes = async () => {
-    const password = backupCodePassword.trim()
-
-    if (password.length < 8)
-      return toast.error(
-        'Current password is required to regenerate backup codes.',
-      )
-
-    try {
-      const response = await regenerateBackupCodes({
-        currentPassword: password,
-      }).unwrap()
-      setLatestBackupCodes(response.data.backupCodes)
-      toast.success('Backup codes generated successfully.')
-    } catch (error) {
-      toast.error(
-        getApiErrorMessage(error, 'Unable to regenerate backup codes.'),
-      )
-    }
-  }
-
   return (
     <section className="space-y-6">
       <SettingsPageHeader
@@ -445,16 +430,10 @@ export default function SecurityPage() {
           <SecurityFeatureRow
             icon={<LockKeyhole className="size-4" />}
             title="Backup Codes"
-            description="Generate or regenerate recovery codes after password verification."
-            actionLabel="Manage"
-            onAction={() => {
-              if (!twoFactorEnabled)
-                return toast.error('Enable TOTP or Email OTP 2FA first.')
-              setLatestBackupCodes(null)
-              setBackupCodePassword('')
-              setShowBackupCodesModal(true)
-            }}
-            danger
+            description="Backup code management is temporarily disabled from this screen."
+            actionLabel="Disabled"
+            onAction={() => undefined}
+            disabled
           />
           {twoFactorEnabled ? (
             <SecurityFeatureRow
@@ -481,7 +460,9 @@ export default function SecurityPage() {
             </h3>
           </div>
           <p className="text-xs font-medium text-slate-500">
-            Showing last {RECENT_LOGINS_LIMIT} entries
+            {loginHistory.length > 0
+              ? `Showing ${visibleStart}-${visibleEnd} of ${loginHistoryPagination?.total ?? loginHistory.length}`
+              : 'No entries to display'}
           </p>
         </div>
         {isLoadingHistory ? (
@@ -537,12 +518,41 @@ export default function SecurityPage() {
             </table>
           </div>
         )}
+
+        {loginHistoryPagination ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              Page {loginHistoryPagination.page} of{' '}
+              {loginHistoryPagination.totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLoginHistoryPage((previous) => previous - 1)}
+                disabled={
+                  !loginHistoryPagination.hasPreviousPage || isLoadingHistory
+                }
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginHistoryPage((previous) => previous + 1)}
+                disabled={!loginHistoryPagination.hasNextPage || isLoadingHistory}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        ) : null}
       </SettingsCard>
 
       <Modal
         open={showTotpSetupModal}
         title="Setup TOTP 2FA"
-        subtitle="TOTP-only flow. Password verification is required before completion."
+        subtitle="Password-first TOTP flow. Once password is verified, setup is generated automatically."
         onClose={() => {
           setShowTotpSetupModal(false)
           resetTotpSetupState()
@@ -556,15 +566,6 @@ export default function SecurityPage() {
             placeholder="Current password"
             className="h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500"
           />
-
-          <button
-            type="button"
-            onClick={() => void handleStartTotpSetup()}
-            disabled={isGeneratingTwoFactor}
-            className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-60"
-          >
-            {isGeneratingTwoFactor ? <BusyIcon /> : null}Generate QR & Secret
-          </button>
 
           {totpSetupData ? (
             <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
@@ -587,7 +588,12 @@ export default function SecurityPage() {
                 Secret: {totpSetupData.secret}
               </p>
             </div>
-          ) : null}
+          ) : (
+            <p className="text-xs text-slate-500">
+              Enter your current password and continue to generate your QR code
+              and secret key.
+            </p>
+          )}
 
           <input
             value={totpOtp}
@@ -610,11 +616,22 @@ export default function SecurityPage() {
           </button>
           <button
             type="button"
-            onClick={() => void handleCompleteTotpSetup()}
-            disabled={!totpSetupData || isVerifyingTwoFactor}
+            onClick={() =>
+              void (totpSetupData
+                ? handleCompleteTotpSetup()
+                : handleStartTotpSetup())
+            }
+            disabled={totpSetupData ? isVerifyingTwoFactor : isGeneratingTwoFactor}
             className="inline-flex items-center gap-2 rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {isVerifyingTwoFactor ? <BusyIcon /> : null}Verify & Enable
+            {totpSetupData
+              ? isVerifyingTwoFactor
+                ? <BusyIcon />
+                : null
+              : isGeneratingTwoFactor
+                ? <BusyIcon />
+                : null}
+            {totpSetupData ? 'Verify & Enable' : 'Verify Password & Continue'}
           </button>
         </div>
       </Modal>
@@ -622,7 +639,7 @@ export default function SecurityPage() {
       <Modal
         open={showEmailSetupModal}
         title="Setup Email OTP 2FA"
-        subtitle="Email-only flow. Password verification is required before completion."
+        subtitle="Password-first email OTP flow. Setup starts automatically after password verification."
         onClose={() => {
           setShowEmailSetupModal(false)
           resetEmailSetupState()
@@ -636,18 +653,6 @@ export default function SecurityPage() {
             placeholder="Current password"
             className="h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500"
           />
-
-          <button
-            type="button"
-            onClick={() => void handleStartEmailSetup()}
-            disabled={isGeneratingTwoFactor || isSendingSetupEmailOtp}
-            className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-60"
-          >
-            {isGeneratingTwoFactor || isSendingSetupEmailOtp ? (
-              <BusyIcon />
-            ) : null}
-            Start Email Setup
-          </button>
 
           {isEmailSetupStarted ? (
             <div className="space-y-2">
@@ -666,7 +671,12 @@ export default function SecurityPage() {
                 {isSendingSetupEmailOtp ? <BusyIcon /> : null}Resend Email OTP
               </button>
             </div>
-          ) : null}
+          ) : (
+            <p className="text-xs text-slate-500">
+              Enter your current password and continue to receive a setup OTP in
+              your email.
+            </p>
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -682,11 +692,28 @@ export default function SecurityPage() {
           </button>
           <button
             type="button"
-            onClick={() => void handleCompleteEmailSetup()}
-            disabled={!isEmailSetupStarted || isVerifyingTwoFactor}
+            onClick={() =>
+              void (isEmailSetupStarted
+                ? handleCompleteEmailSetup()
+                : handleStartEmailSetup())
+            }
+            disabled={
+              isEmailSetupStarted
+                ? isVerifyingTwoFactor
+                : isGeneratingTwoFactor || isSendingSetupEmailOtp
+            }
             className="inline-flex items-center gap-2 rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {isVerifyingTwoFactor ? <BusyIcon /> : null}Verify & Enable
+            {isEmailSetupStarted
+              ? isVerifyingTwoFactor
+                ? <BusyIcon />
+                : null
+              : isGeneratingTwoFactor || isSendingSetupEmailOtp
+                ? <BusyIcon />
+                : null}
+            {isEmailSetupStarted
+              ? 'Verify & Enable'
+              : 'Verify Password & Continue'}
           </button>
         </div>
       </Modal>
@@ -725,57 +752,6 @@ export default function SecurityPage() {
         </div>
       </Modal>
 
-      <Modal
-        open={showBackupCodesModal}
-        title="Backup Codes"
-        subtitle="Generate backup codes after password verification."
-        onClose={() => setShowBackupCodesModal(false)}
-      >
-        <div className="space-y-3">
-          <input
-            type="password"
-            value={backupCodePassword}
-            onChange={(event) => setBackupCodePassword(event.target.value)}
-            placeholder="Current password"
-            className="h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500"
-          />
-
-          {latestBackupCodes?.length ? (
-            <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
-              <p className="mb-2 text-sm font-semibold text-slate-700">
-                New Backup Codes
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {latestBackupCodes.map((code) => (
-                  <div
-                    key={code}
-                    className="rounded-md bg-white px-2 py-1 text-center text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                  >
-                    {code}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setShowBackupCodesModal(false)}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-          >
-            Close
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleRegenerateBackupCodes()}
-            disabled={isRegeneratingBackupCodes}
-            className="inline-flex items-center gap-2 rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {isRegeneratingBackupCodes ? <BusyIcon /> : null}Generate Codes
-          </button>
-        </div>
-      </Modal>
     </section>
   )
 }
