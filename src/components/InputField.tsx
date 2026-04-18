@@ -45,7 +45,7 @@ export default function InputField({
 
       <label
         htmlFor={id}
-        className={`flex items-center gap-2.5 px-3.5 h-12 w-full rounded-lg border bg-gray-50 cursor-text transition-all duration-150
+        className={`flex items-center gap-2.5 px-3.5 h-11 w-full rounded-lg border bg-gray-50 cursor-text transition-all duration-150
           ${
             focused
               ? 'border-teal-600 bg-white ring-[2.5px] ring-teal-600/10'
