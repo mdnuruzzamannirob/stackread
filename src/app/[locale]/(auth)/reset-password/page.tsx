@@ -3,6 +3,7 @@
 import InputField from '@/components/InputField'
 import { Lock } from 'lucide-react'
 import { useState } from 'react'
+import AuthHeroSection from '../../../../components/auth/AuthHeroSection'
 
 interface FormData {
   password: string
@@ -26,9 +27,12 @@ const ResetPasswordPage = () => {
   return (
     <main className="min-h-dvh flex flex-col">
       <div className="flex flex-1 min-h-dvh">
-        <section className="fixed left-0 top-0 min-h-dvh w-1/2 bg-red-50">
-          Left
-        </section>
+        <AuthHeroSection
+          backgroundImage="https://images.unsplash.com/photo-1620714223084-8fcabc6413cc?w=1200&h=1600&fit=crop"
+          backgroundColor="bg-slate-900"
+          title="Secure your account."
+          description="Create a strong new password to protect your StackRead library."
+        />
 
         <section className="ml-[50%] flex min-h-dvh w-1/2 items-center justify-center overflow-y-auto bg-white">
           <div className="mx-auto w-full max-w-lg rounded-xl px-4 py-16 sm:px-6">

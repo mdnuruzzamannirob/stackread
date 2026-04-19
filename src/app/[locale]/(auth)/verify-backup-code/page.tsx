@@ -1,52 +1,52 @@
 'use client'
 
 import InputField from '@/components/InputField'
-import { Mail } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import AuthHeroSection from '../../../../components/auth/AuthHeroSection'
 
-const ForgotPasswordPage = () => {
-  const [email, setEmail] = useState('')
+const VerifyBackupCodePage = () => {
+  const [code, setCode] = useState('')
 
   return (
     <main className="min-h-dvh flex flex-col">
       <div className="flex flex-1 min-h-dvh">
         <AuthHeroSection
-          backgroundImage="https://images.unsplash.com/photo-1526374965328-7f5ae4e8a83f?w=1200&h=1600&fit=crop"
-          backgroundColor="bg-slate-900"
-          title="Recover your account."
-          description="We'll help you regain access to your StackRead library securely."
+          backgroundImage="https://images.unsplash.com/photo-1620714223084-8fcabc6413cc?w=1200&h=1600&fit=crop"
+          backgroundColor="bg-teal-700"
+          title="Secure Your Knowledge"
+          description="One more step to protect your digital archive."
         />
 
         <section className="ml-[50%] flex min-h-dvh w-1/2 items-center justify-center overflow-y-auto bg-white">
           <div className="mx-auto w-full max-w-lg rounded-xl px-4 py-16 sm:px-6">
             <div className="mb-8 space-y-2">
               <h1 className="text-2xl font-semibold sm:text-3xl">
-                Forgot Password
+                Use Backup Code
               </h1>
               <p className="text-slate-500">
-                Enter your email address and we will send you a password reset
-                link.
+                Enter one of your backup codes to continue. Each code can only
+                be used once.
               </p>
             </div>
 
             <form
               onSubmit={(event) => {
                 event.preventDefault()
-                console.log('Forgot password request:', email)
+                console.log('Backup code submitted:', code)
               }}
             >
               <div className="mb-4">
                 <InputField
-                  icon={<Mail size={17} />}
-                  type="email"
-                  name="email"
-                  label="Email Address"
+                  icon={<Lock size={17} />}
+                  type="text"
+                  name="code"
+                  label="Backup Code"
                   required
-                  placeholder="john@example.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Enter your backup code"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
                 />
               </div>
 
@@ -54,16 +54,16 @@ const ForgotPasswordPage = () => {
                 type="submit"
                 className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99]"
               >
-                Send Reset Link
+                Verify & Continue
               </button>
 
               <p className="mt-4 text-center text-sm text-gray-500">
-                Remember your password?{' '}
+                Don&apos;t have a backup code?{' '}
                 <Link
-                  href="/login"
+                  href="/choose-verification"
                   className="font-medium text-teal-700 hover:underline"
                 >
-                  Sign in
+                  Try another method
                 </Link>
               </p>
             </form>
@@ -74,4 +74,4 @@ const ForgotPasswordPage = () => {
   )
 }
 
-export default ForgotPasswordPage
+export default VerifyBackupCodePage

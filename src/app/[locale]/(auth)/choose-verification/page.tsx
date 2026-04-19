@@ -1,0 +1,101 @@
+'use client'
+
+import { Lock, Mail, Shield } from 'lucide-react'
+import Link from 'next/link'
+import AuthHeroSection from '../../../../components/auth/AuthHeroSection'
+
+const ChooseVerificationPage = () => {
+  return (
+    <main className="min-h-dvh flex flex-col">
+      <div className="flex flex-1 min-h-dvh">
+        <AuthHeroSection
+          backgroundImage="https://images.unsplash.com/photo-1614064641938-3bbee52b8d25?w=1200&h=1600&fit=crop"
+          backgroundColor="bg-teal-700"
+          title="Security Layer"
+          description="Protecting Your Universal Library."
+        />
+
+        <section className="ml-[50%] flex min-h-dvh w-1/2 items-center justify-center overflow-y-auto bg-white">
+          <div className="mx-auto w-full max-w-lg rounded-xl px-4 py-16 sm:px-6">
+            <div className="mb-8 space-y-2">
+              <h1 className="text-2xl font-semibold sm:text-3xl">
+                Choose Verification Method
+              </h1>
+              <p className="text-slate-500">
+                Choose a secondary verification method to maintain the integrity
+                of your curated collection.
+              </p>
+            </div>
+
+            <form className="space-y-3">
+              <Link
+                href="/verify-authenticator"
+                className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
+              >
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-teal-100 to-teal-50 transition-all group-hover:from-teal-200 group-hover:to-teal-100">
+                  <Shield
+                    size={20}
+                    className="text-teal-700 transition-colors"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                    Authenticator App
+                  </h3>
+                  <p className="text-sm text-gray-600 group-hover:text-gray-700">
+                    Generate codes via Google or Microsoft
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/verify-email-2fa"
+                className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
+              >
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-teal-100 to-teal-50 transition-all group-hover:from-teal-200 group-hover:to-teal-100">
+                  <Mail size={20} className="text-teal-700 transition-colors" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                    Email OTP
+                  </h3>
+                  <p className="text-sm text-gray-600 group-hover:text-gray-700">
+                    One-time code sent to your inbox
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/verify-backup-code"
+                className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
+              >
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-teal-100 to-teal-50 transition-all group-hover:from-teal-200 group-hover:to-teal-100">
+                  <Lock size={20} className="text-teal-700 transition-colors" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                    Backup Codes
+                  </h3>
+                  <p className="text-sm text-gray-600 group-hover:text-gray-700">
+                    Use a pre-generated offline code
+                  </p>
+                </div>
+              </Link>
+            </form>
+
+            <p className="mt-8 text-center text-sm text-gray-500">
+              <Link
+                href="/login"
+                className="font-medium text-teal-700 hover:underline"
+              >
+                Back to login
+              </Link>
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+  )
+}
+
+export default ChooseVerificationPage

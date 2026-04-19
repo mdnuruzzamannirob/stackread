@@ -3,6 +3,7 @@
 import OtpInputField from '@/components/OtpInputField'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import AuthHeroSection from '../../../../components/auth/AuthHeroSection'
 
 const RESEND_SECONDS = 30
 
@@ -25,9 +26,12 @@ const VerifyOTPPage = () => {
   return (
     <main className="min-h-dvh flex flex-col">
       <div className="flex flex-1 min-h-dvh">
-        <section className="fixed left-0 top-0 min-h-dvh w-1/2 bg-red-50">
-          Left
-        </section>
+        <AuthHeroSection
+          backgroundImage="https://images.unsplash.com/photo-1483389127117-b6a2102724ae?w=1200&h=1600&fit=crop"
+          backgroundColor="bg-teal-700"
+          title="Secure your knowledge."
+          description="One more step to protect your digital archive."
+        />
 
         <section className="ml-[50%] flex min-h-dvh w-1/2 items-center justify-center overflow-y-auto bg-white">
           <div className="mx-auto w-full max-w-lg rounded-xl px-4 py-16 sm:px-6">

@@ -7,8 +7,7 @@ import AuthHeroSection from '../../../../components/auth/AuthHeroSection'
 
 const RESEND_SECONDS = 30
 
-const VerifyEmail = () => {
-  const [sent, setSent] = useState(false)
+const VerifyEmail2FAPage = () => {
   const [otp, setOtp] = useState('')
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS)
 
@@ -30,26 +29,26 @@ const VerifyEmail = () => {
         <AuthHeroSection
           backgroundImage="https://images.unsplash.com/photo-1563552671-12d1a8e1e4ba?w=1200&h=1600&fit=crop"
           backgroundColor="bg-teal-700"
-          title="Verify your email."
-          description="Confirm your email address to activate your StackRead account."
+          title="Verify Your Identity"
+          description="A security code has been sent to your email."
         />
 
         <section className="ml-[50%] flex min-h-dvh w-1/2 items-center justify-center overflow-y-auto bg-white">
           <div className="mx-auto w-full max-w-lg rounded-xl px-4 py-16 sm:px-6">
             <div className="mb-8 space-y-2">
               <h1 className="text-2xl font-semibold sm:text-3xl">
-                Verify Your Email
+                Verify with Email
               </h1>
               <p className="text-slate-500">
-                Enter the 6-digit code we sent to your email address to finish
-                creating your account.
+                Enter the 6-digit code we sent to your email address to
+                continue.
               </p>
             </div>
 
             <form
               onSubmit={(event) => {
                 event.preventDefault()
-                console.log('Email verification OTP:', otp)
+                console.log('Email 2FA OTP submitted:', otp)
               }}
             >
               <div className="mb-5">
@@ -57,16 +56,16 @@ const VerifyEmail = () => {
                   length={6}
                   onChange={setOtp}
                   onComplete={(value) =>
-                    console.log('Email OTP complete:', value)
+                    console.log('Email 2FA OTP complete:', value)
                   }
                 />
               </div>
 
               <button
                 type="submit"
-                className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99]"
               >
-                Verify Email
+                Verify & Continue
               </button>
 
               <div className="mt-4 text-center text-sm text-gray-500">
@@ -76,23 +75,22 @@ const VerifyEmail = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setSent(true)
                       setSecondsLeft(RESEND_SECONDS)
                     }}
                     className="font-medium text-teal-700 hover:underline"
                   >
-                    {sent ? 'Resend code again' : 'Resend code'}
+                    Resend code
                   </button>
                 )}
               </div>
 
               <p className="mt-4 text-center text-sm text-gray-500">
-                Already have an account?{' '}
+                Didn&apos;t receive the email?{' '}
                 <Link
-                  href="/login"
+                  href="/choose-verification"
                   className="font-medium text-teal-700 hover:underline"
                 >
-                  Sign in
+                  Try another method
                 </Link>
               </p>
             </form>
@@ -103,4 +101,4 @@ const VerifyEmail = () => {
   )
 }
 
-export default VerifyEmail
+export default VerifyEmail2FAPage

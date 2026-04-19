@@ -4,6 +4,7 @@ import InputField from '@/components/InputField'
 import { Check, Home, Lock, Mail, Phone, User } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import AuthHeroSection from '../../../../components/auth/AuthHeroSection'
 
 interface FormData {
   firstName: string
@@ -45,10 +46,12 @@ const RegisterPage = () => {
   return (
     <main className="min-h-dvh flex flex-col">
       <div className="flex flex-1 min-h-dvh">
-        {/* Left - fixed */}
-        <section className="w-1/2 fixed top-0 left-0 min-h-dvh bg-red-50">
-          Left
-        </section>
+        <AuthHeroSection
+          backgroundImage="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=1200&h=1600&fit=crop"
+          backgroundColor="bg-slate-900"
+          title="Start your reading journey."
+          description="Join millions of readers discovering knowledge in the world's largest digital library."
+        />
 
         {/* Right - scrollable */}
         <section className="w-1/2 ml-[50%] min-h-dvh flex items-center justify-center bg-white overflow-y-auto">
