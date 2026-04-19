@@ -23,18 +23,19 @@ const OtpInputField = ({
   onChange,
   onComplete,
 }: OtpInputProps) => {
-  const [otp, setOtp] = useState<string[]>(() =>
+  const [internalOtp, setInternalOtp] = useState<string[]>(() =>
     Array.from({ length }, () => ''),
   )
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
   const isProgrammaticFocus = useRef(false)
 
-
-  useEffect(() => {
-    if (externalValue === undefined) return
-    const digits = externalValue.replace(/\D/g, '').slice(0, length).split('')
-    setOtp(Array.from({ length }, (_, i) => digits[i] ?? ''))
-  }, [externalValue, length])
+  const otp =
+    externalValue !== undefined
+      ? Array.from(
+          { length },
+          (_, i) => externalValue.replace(/\D/g, '')[i] ?? '',
+        )
+      : internalOtp
 
   const value = otp.join('')
 
@@ -60,7 +61,7 @@ const OtpInputField = ({
   }
 
   const setDigitAtIndex = (index: number, digit: string) => {
-    setOtp((prev) => {
+    setInternalOtp((prev) => {
       const next = [...prev]
       next[index] = digit
       return next
@@ -76,7 +77,7 @@ const OtpInputField = ({
     }
 
     if (digits.length > 1) {
-      setOtp((prev) => {
+      setInternalOtp((prev) => {
         const next = [...prev]
         digits
           .slice(0, length)
@@ -152,7 +153,7 @@ const OtpInputField = ({
     const pastedValue = event.clipboardData.getData('text').replace(/\D/g, '')
     if (!pastedValue) return
 
-    setOtp((prev) => {
+    setInternalOtp((prev) => {
       const next = [...prev]
       pastedValue
         .slice(0, length - index)
@@ -172,7 +173,6 @@ const OtpInputField = ({
       Array.from({ length: Math.min(groupSize, length - i) }, (_, j) => i + j),
     )
   }
-
 
   const inputClass = [
     'h-11 w-11 sm:h-12 sm:w-12 rounded-lg border bg-gray-50 text-center',
@@ -212,7 +212,14 @@ const OtpInputField = ({
               aria-invalid={error}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              onBeforeInput={(e) => handleBeforeInput(index, e )}
+              onBeforeInput={(e) =>
+                handleBeforeInput(
+                  index,
+                  e as React.FormEvent<HTMLInputElement> & {
+                    data?: string | null
+                  },
+                )
+              }
               onPaste={(e) => handlePaste(index, e)}
               onFocus={handleFocus}
               className={inputClass}
