@@ -34,11 +34,11 @@ export function OnboardingShell({
           </p>
 
           <div className="flex items-center gap-2 pt-1">
-            {Array.from({ length: 6 }).map((_, index) => {
+            {Array.from({ length: 5 }).map((_, index) => {
               const active = index < progress
               return (
                 <span
-                  key={`progress-${6}-${index}`}
+                  key={`progress-${5}-${index}`}
                   className={cn(
                     'h-1 w-8 rounded-full transition-all',
                     active ? ' bg-teal-600' : ' bg-gray-300',
