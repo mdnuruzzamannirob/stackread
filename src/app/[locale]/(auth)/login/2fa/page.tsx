@@ -3,8 +3,11 @@
 import AuthShell from '@/components/AuthShell'
 import { Circle, CircleDot, Lock, Mail, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 const TwoFactorAuthentication = () => {
+  const params = useParams()
+  const locale = params.locale as string
   return (
     <main className="min-h-dvh flex flex-col">
       <div className="flex flex-1 min-h-dvh">
@@ -29,7 +32,7 @@ const TwoFactorAuthentication = () => {
 
               <div className="space-y-3">
                 <Link
-                  href="/login/2fa/totp"
+                  href={`/${locale}/login/2fa/totp`}
                   className="relative group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
                 >
                   <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
@@ -62,7 +65,7 @@ const TwoFactorAuthentication = () => {
                 </Link>
 
                 <Link
-                  href="/login/2fa/email"
+                  href={`/${locale}/login/2fa/email`}
                   className="relative group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
                 >
                   <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
@@ -95,7 +98,7 @@ const TwoFactorAuthentication = () => {
                 </Link>
 
                 <Link
-                  href="/login/2fa/recovery"
+                  href={`/${locale}/login/2fa/recovery`}
                   className="relative group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
                 >
                   <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
@@ -130,7 +133,7 @@ const TwoFactorAuthentication = () => {
 
               <p className="mt-8 text-center text-sm text-gray-500">
                 <Link
-                  href="/login"
+                  href={`/${locale}/login`}
                   className="font-medium text-teal-700 hover:underline"
                 >
                   Back to login

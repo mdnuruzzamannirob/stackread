@@ -2,36 +2,87 @@
 
 import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import type { LoginSchema } from '@/lib/validations/auth'
+import { loginSchema } from '@/lib/validations/auth'
+import { authApi } from '@/store/features/auth/authApi'
+import {
+  setAuthenticatedSession,
+  setEmailInFlow,
+  setLoginOutcome,
+} from '@/store/features/auth/authSlice'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Lock, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-
-interface FormData {
-  email: string
-  password: string
-  rememberMe: boolean
-}
+import { useForm } from 'react-hook-form'
+import { useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 
 const LoginPage = () => {
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+  const dispatch = useDispatch()
   const [rememberMe, setRememberMe] = useState(false)
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: '',
-    rememberMe: false,
+
+  const [login, { isLoading }] = authApi.useLoginMutation()
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
+  const onSubmit = async (data: LoginSchema) => {
+    try {
+      const response = await login({
+        email: data.email,
+        password: data.password,
+        rememberMe,
+      }).unwrap()
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
-  }
+      if (!response.data) {
+        toast.error('An unexpected error occurred')
+        return
+      }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    console.log('Form submitted:', formData)
+      // Check if 2FA is required
+      if (response.data.requiresTwoFactor) {
+        // Store temp token and redirect to 2FA method selection
+        dispatch(setRememberMe(rememberMe))
+        dispatch(setEmailInFlow(data.email))
+        dispatch(setLoginOutcome(response.data))
+        router.push(`/${locale}/login/2fa`)
+      } else {
+        // Successful login - save token and user
+        dispatch(
+          setAuthenticatedSession({
+            token: response.data.accessToken,
+            user: response.data.user,
+          }),
+        )
+
+        // Determine next destination based on onboarding status
+        const destination = await resolveAuthenticatedDestination({
+          accessToken: response.data.accessToken,
+          locale,
+        })
+
+        toast.success('Logged in successfully')
+        router.push(destination)
+      }
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Login failed. Please check your credentials.',
+      )
+      toast.error(errorMessage)
+    }
   }
 
   return (
@@ -56,31 +107,26 @@ const LoginPage = () => {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-4">
                   <InputField
                     icon={<Mail size={17} />}
                     type="email"
-                    name="email"
                     label="Email Address"
-                    required
-                    placeholder="Email Address"
-                    value={formData.email}
-                    onChange={handleChange}
+                    placeholder="john@example.com"
+                    {...register('email')}
+                    error={errors.email?.message}
                   />
                 </div>
 
                 <div className="mb-4">
                   <div className="mb-1.5 flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="field-password"
-                      className="cursor-pointer select-none text-sm font-medium text-gray-600"
-                    >
+                    <label className="cursor-pointer select-none text-sm font-medium text-gray-600">
                       Password<span className="ml-0.5 text-red-500">*</span>
                     </label>
 
                     <Link
-                      href="/forgot-password"
+                      href={`/${locale}/forgot-password`}
                       className="text-sm font-medium text-teal-700 hover:underline"
                     >
                       Forgot password?
@@ -90,23 +136,15 @@ const LoginPage = () => {
                   <InputField
                     icon={<Lock size={17} />}
                     type="password"
-                    name="password"
                     placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
+                    {...register('password')}
+                    error={errors.password?.message}
                   />
                 </div>
 
                 <div
                   className="group mb-5 flex w-fit cursor-pointer select-none items-start gap-3"
-                  onClick={() => {
-                    const nextValue = !rememberMe
-                    setRememberMe(nextValue)
-                    setFormData((prev) => ({
-                      ...prev,
-                      rememberMe: nextValue,
-                    }))
-                  }}
+                  onClick={() => setRememberMe(!rememberMe)}
                 >
                   <div
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all duration-150 ${
@@ -127,9 +165,10 @@ const LoginPage = () => {
 
                 <button
                   type="submit"
-                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99]"
+                  disabled={isLoading}
+                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign In
+                  {isLoading ? 'Signing In...' : 'Sign In'}
                 </button>
 
                 <div className="my-8 flex items-center gap-4">
@@ -193,7 +232,7 @@ const LoginPage = () => {
                 <p className="text-center text-sm text-gray-500">
                   Don&apos;t have an account?{' '}
                   <Link
-                    href="/register"
+                    href={`/${locale}/register`}
                     className="font-medium text-teal-700 hover:underline"
                   >
                     Create one

@@ -3,12 +3,29 @@
 import AuthShell from '@/components/AuthShell'
 import OtpInputField from '@/components/OtpInputField'
 import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
-const RESEND_SECONDS = 30
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import {
+  useResendVerificationMutation,
+  useVerifyEmailMutation,
+} from '@/store/features/auth/authApi'
+import { useAppSelector } from '@/store/hooks'
 
-const VerifyEmail = () => {
-  const [sent, setSent] = useState(false)
+const RESEND_SECONDS = 60
+
+const VerifyEmailPage = () => {
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+  const emailInFlow = useAppSelector((state) => state.auth.emailInFlow)
+
+  const [verifyEmail, { isLoading: isVerifying }] = useVerifyEmailMutation()
+  const [resendVerification, { isLoading: isResending }] =
+    useResendVerificationMutation()
+
   const [otp, setOtp] = useState('')
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS)
 
@@ -23,6 +40,50 @@ const VerifyEmail = () => {
 
     return () => window.clearInterval(timer)
   }, [secondsLeft])
+
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!emailInFlow || !otp) {
+      toast.error('Please enter the verification code')
+      return
+    }
+
+    try {
+      await verifyEmail({
+        email: emailInFlow,
+        otp,
+      }).unwrap()
+
+      toast.success('Email verified successfully!')
+      router.push(`/${locale}/onboarding/welcome`)
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Verification failed. Please check the code and try again.',
+      )
+      toast.error(errorMessage)
+    }
+  }
+
+  const handleResend = async () => {
+    if (!emailInFlow) {
+      toast.error('Email not found. Please try registering again.')
+      return
+    }
+
+    try {
+      await resendVerification({ email: emailInFlow }).unwrap()
+      setSecondsLeft(RESEND_SECONDS)
+      setOtp('')
+      toast.success('Code resent to your email')
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Failed to resend code. Please try again.',
+      )
+      toast.error(errorMessage)
+    }
+  }
 
   return (
     <main className="min-h-dvh flex flex-col">
@@ -42,32 +103,30 @@ const VerifyEmail = () => {
                   Verify Your Email
                 </h1>
                 <p className="text-slate-500">
-                  Enter the 6-digit code we sent to your email address to finish
-                  creating your account.
+                  Enter the 6-digit code we sent to{' '}
+                  <span className="font-medium text-gray-900">
+                    {emailInFlow}
+                  </span>
+                  .
                 </p>
               </div>
 
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  console.log('Email verification OTP:', otp)
-                }}
-              >
+              <form onSubmit={handleVerify}>
                 <div className="mb-5">
                   <OtpInputField
                     length={6}
+                    value={otp}
                     onChange={setOtp}
-                    onComplete={(value) =>
-                      console.log('Email OTP complete:', value)
-                    }
+                    disabled={isVerifying}
                   />
                 </div>
 
                 <button
                   type="submit"
+                  disabled={isVerifying || otp.length !== 6}
                   className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Verify Email
+                  {isVerifying ? 'Verifying...' : 'Verify Email'}
                 </button>
 
                 <div className="mt-4 text-center text-sm text-gray-500">
@@ -76,13 +135,11 @@ const VerifyEmail = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        setSent(true)
-                        setSecondsLeft(RESEND_SECONDS)
-                      }}
-                      className="font-medium text-teal-700 hover:underline"
+                      onClick={handleResend}
+                      disabled={isResending}
+                      className="font-medium text-teal-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {sent ? 'Resend code again' : 'Resend code'}
+                      {isResending ? 'Sending...' : 'Resend code'}
                     </button>
                   )}
                 </div>
@@ -90,7 +147,7 @@ const VerifyEmail = () => {
                 <p className="mt-4 text-center text-sm text-gray-500">
                   Already have an account?{' '}
                   <Link
-                    href="/login"
+                    href={`/${locale}/login`}
                     className="font-medium text-teal-700 hover:underline"
                   >
                     Log in
@@ -133,4 +190,4 @@ const VerifyEmail = () => {
   )
 }
 
-export default VerifyEmail
+export default VerifyEmailPage

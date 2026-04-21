@@ -2,12 +2,84 @@
 
 import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import type { RecoveryCodeChallengeSchema } from '@/lib/validations/auth'
+import { recoveryCodeChallengeSchema } from '@/lib/validations/auth'
+import type { RootState } from '@/store'
+import { authApi } from '@/store/features/auth/authApi'
+import { setAuthenticatedSession } from '@/store/features/auth/authSlice'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Lock } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'sonner'
 
 const TwoFactorAuthenticationRecovery = () => {
-  const [code, setCode] = useState('')
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+  const dispatch = useDispatch()
+
+  // Get tempToken from Redux auth state
+  const { tempToken } = useSelector((state: RootState) => state.auth)
+
+  const [challengeTwoFactor, { isLoading }] =
+    authApi.useChallengeTwoFactorMutation()
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RecoveryCodeChallengeSchema>({
+    resolver: zodResolver(recoveryCodeChallengeSchema),
+  })
+
+  // Redirect if no tempToken
+  if (!tempToken) {
+    router.push(`/${locale}/login`)
+    return null
+  }
+
+  const onSubmit = async (data: RecoveryCodeChallengeSchema) => {
+    try {
+      const response = await challengeTwoFactor({
+        tempToken,
+        method: 'backup-code',
+        verificationCode: data.code,
+      }).unwrap()
+
+      if (!response.data) {
+        toast.error('An unexpected error occurred')
+        return
+      }
+
+      // Successful 2FA
+      dispatch(
+        setAuthenticatedSession({
+          token: response.data.accessToken,
+          user: response.data.user,
+        }),
+      )
+
+      // Determine next destination
+      const destination = await resolveAuthenticatedDestination({
+        accessToken: response.data.accessToken,
+        locale,
+      })
+
+      toast.success('Verification successful')
+      router.push(destination)
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Verification failed. Please check your code.',
+      )
+      toast.error(errorMessage)
+    }
+  }
 
   return (
     <main className="min-h-dvh flex flex-col">
@@ -31,36 +103,30 @@ const TwoFactorAuthenticationRecovery = () => {
                 </p>
               </div>
 
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  console.log('Backup code submitted:', code)
-                }}
-              >
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-4">
                   <InputField
                     icon={<Lock size={17} />}
                     type="text"
-                    name="code"
                     label="Backup Code"
-                    required
                     placeholder="Enter your backup code"
-                    value={code}
-                    onChange={(event) => setCode(event.target.value)}
+                    {...register('code')}
+                    error={errors.code?.message}
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99]"
+                  disabled={isLoading}
+                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Verify & Continue
+                  {isLoading ? 'Verifying...' : 'Verify & Continue'}
                 </button>
 
                 <p className="mt-4 text-center text-sm text-gray-500">
                   Don&apos;t have a backup code?{' '}
                   <Link
-                    href="/login/2fa"
+                    href={`/${locale}/login/2fa`}
                     className="font-medium text-teal-700 hover:underline"
                   >
                     Try another method
@@ -68,28 +134,28 @@ const TwoFactorAuthenticationRecovery = () => {
                 </p>
               </form>
             </div>
-          </div>{' '}
+          </div>
           <div className="px-6 pb-6 flex sm:flex-row flex-col-reverse items-center justify-between flex-wrap text-sm text-gray-500">
             <p>
               &copy; {new Date().getFullYear()} StackRead. All rights reserved.
             </p>
             <div className="">
               <Link
-                href="/support"
+                href={`/${locale}/support`}
                 className="font-medium text-teal-700 hover:underline"
               >
                 Support
               </Link>{' '}
               |{' '}
               <Link
-                href="/terms"
+                href={`/${locale}/terms`}
                 className="font-medium text-teal-700 hover:underline"
               >
                 Terms of Service
               </Link>{' '}
               |{' '}
               <Link
-                href="/privacy"
+                href={`/${locale}/privacy`}
                 className="font-medium text-teal-700 hover:underline"
               >
                 Privacy Policy

@@ -2,45 +2,62 @@
 
 import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Home, Lock, Mail, Phone, User } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
-interface FormData {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  address: string
-  password: string
-  confirmPassword: string
-  agreeTerms: boolean
-}
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { registerSchema, type RegisterSchema } from '@/lib/validations/auth'
+import { useRegisterMutation } from '@/store/features/auth/authApi'
+import { setEmailInFlow } from '@/store/features/auth/authSlice'
+import { useAppDispatch } from '@/store/hooks'
 
 const RegisterPage = () => {
-  const [agreed, setAgreed] = useState(false)
-  const [formData, setFormData] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    password: '',
-    confirmPassword: '',
-    agreeTerms: false,
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+  const dispatch = useAppDispatch()
+
+  const [register, { isLoading }] = useRegisterMutation()
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm<RegisterSchema>({
+    resolver: zodResolver(registerSchema),
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
-  }
+  const agreeTerms = watch('agreeTerms')
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault()
-    console.log('Form submitted:', formData)
+  const onSubmit = async (data: RegisterSchema) => {
+    try {
+      const response = await register({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone || '',
+        address: data.address || '',
+        password: data.password,
+        countryCode: 'BD', // TODO: Get from phone or location
+        agreeToTerms: data.agreeTerms,
+      }).unwrap()
+
+      if (response.data) {
+        dispatch(setEmailInFlow(data.email))
+        toast.success('Registration successful! Verify your email.')
+        router.push(`/${locale}/register/verify-email`)
+      }
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Registration failed. Please try again.',
+      )
+      toast.error(errorMessage)
+    }
   }
 
   return (
@@ -65,28 +82,28 @@ const RegisterPage = () => {
                 </p>
               </div>
 
-              <form action="">
+              <form onSubmit={handleSubmit(onSubmit)}>
                 {/* First Name + Last Name */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <InputField
                     icon={<User size={17} />}
                     type="text"
-                    name="firstName"
                     label="First Name"
                     required
                     placeholder="John"
-                    value={formData.firstName}
-                    onChange={handleChange}
+                    {...registerField('firstName')}
+                    error={errors.firstName?.message}
+                    disabled={isLoading}
                   />
                   <InputField
                     icon={<User size={17} />}
                     type="text"
-                    name="lastName"
                     label="Last Name"
                     required
                     placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={handleChange}
+                    {...registerField('lastName')}
+                    error={errors.lastName?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -95,12 +112,12 @@ const RegisterPage = () => {
                   <InputField
                     icon={<Mail size={17} />}
                     type="email"
-                    name="email"
                     label="Email Address"
                     required
                     placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
+                    {...registerField('email')}
+                    error={errors.email?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -109,11 +126,11 @@ const RegisterPage = () => {
                   <InputField
                     icon={<Phone size={17} />}
                     type="tel"
-                    name="phone"
-                    label="Phone Number (optional)"
+                    label="Phone Number"
                     placeholder="+880 1XX-XXXXXXX"
-                    value={formData.phone}
-                    onChange={handleChange}
+                    {...registerField('phone')}
+                    error={errors.phone?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -122,11 +139,11 @@ const RegisterPage = () => {
                   <InputField
                     icon={<Home size={17} />}
                     type="text"
-                    name="address"
-                    label="Address (optional)"
+                    label="Address"
                     placeholder="123 Main Street"
-                    value={formData.address}
-                    onChange={handleChange}
+                    {...registerField('address')}
+                    error={errors.address?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -135,12 +152,12 @@ const RegisterPage = () => {
                   <InputField
                     icon={<Lock size={17} />}
                     type="password"
-                    name="password"
                     label="Password"
                     required
                     placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
+                    {...registerField('password')}
+                    error={errors.password?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -149,38 +166,45 @@ const RegisterPage = () => {
                   <InputField
                     icon={<Lock size={17} />}
                     type="password"
-                    name="confirmPassword"
                     label="Confirm Password"
                     required
                     placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
+                    {...registerField('confirmPassword')}
+                    error={errors.confirmPassword?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
                 {/* Terms Checkbox */}
                 <div
                   className="group flex items-start gap-3 mb-5 cursor-pointer select-none w-fit"
-                  onClick={() => setAgreed((v) => !v)}
+                  onClick={() => {
+                    // This will be handled by the form, just styling
+                  }}
                 >
                   <div
                     className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all duration-150 ${
-                      agreed
+                      agreeTerms
                         ? 'bg-teal-700 border-teal-700'
                         : 'bg-white border-gray-300 group-hover:border-teal-500'
                     }`}
                   >
-                    {agreed && (
+                    {agreeTerms && (
                       <Check size={12} strokeWidth={3} className="text-white" />
                     )}
                   </div>
 
-                  <span className="text-sm text-gray-500 leading-relaxed">
+                  <label className="text-sm text-gray-500 leading-relaxed cursor-pointer flex-1">
+                    <input
+                      type="checkbox"
+                      hidden
+                      {...registerField('agreeTerms')}
+                    />
                     I agree to the{' '}
                     <a
                       href="#"
                       className="text-teal-700 hover:underline"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => e.preventDefault()}
                     >
                       Terms of Service
                     </a>{' '}
@@ -188,20 +212,26 @@ const RegisterPage = () => {
                     <a
                       href="#"
                       className="text-teal-700 hover:underline"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => e.preventDefault()}
                     >
                       Privacy Policy
                     </a>
                     .
-                  </span>
+                  </label>
                 </div>
+                {errors.agreeTerms && (
+                  <p className="text-sm text-red-600 mb-4">
+                    {errors.agreeTerms.message}
+                  </p>
+                )}
 
                 {/* Submit Button */}
                 <button
-                  onClick={handleSubmit}
-                  className="w-full h-12 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white text-sm font-medium rounded-lg transition-all duration-150"
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white text-sm font-medium rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Account
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
                 </button>
 
                 {/* Divider */}

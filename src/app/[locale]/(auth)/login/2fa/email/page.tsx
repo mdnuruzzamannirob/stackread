@@ -2,14 +2,46 @@
 
 import AuthShell from '@/components/AuthShell'
 import OtpInputField from '@/components/OtpInputField'
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import type { TwoFactorChallengeSchema } from '@/lib/validations/auth'
+import { twoFactorChallengeSchema } from '@/lib/validations/auth'
+import type { RootState } from '@/store'
+import { authApi } from '@/store/features/auth/authApi'
+import { setAuthenticatedSession } from '@/store/features/auth/authSlice'
+import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'sonner'
 
 const RESEND_SECONDS = 30
 
 const TwoFactorAuthenticationEmail = () => {
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+  const dispatch = useDispatch()
+
+  // Get tempToken from Redux auth state
+  const { tempToken } = useSelector((state: RootState) => state.auth)
+
   const [otp, setOtp] = useState('')
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS)
+
+  const [challengeTwoFactor, { isLoading }] =
+    authApi.useChallengeTwoFactorMutation()
+  const [sendTwoFactorEmailOtp, { isLoading: isSendingOtp }] =
+    authApi.useSendTwoFactorEmailOtpMutation()
+
+  const {
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TwoFactorChallengeSchema>({
+    resolver: zodResolver(twoFactorChallengeSchema),
+  })
 
   useEffect(() => {
     if (secondsLeft <= 0) {
@@ -22,6 +54,69 @@ const TwoFactorAuthenticationEmail = () => {
 
     return () => window.clearInterval(timer)
   }, [secondsLeft])
+
+  // Redirect if no tempToken
+  if (!tempToken) {
+    router.push(`/${locale}/login`)
+    return null
+  }
+
+  const onSubmit = async () => {
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit code')
+      return
+    }
+
+    try {
+      const response = await challengeTwoFactor({
+        tempToken,
+        method: 'email',
+        verificationCode: otp,
+      }).unwrap()
+
+      if (!response.data) {
+        toast.error('An unexpected error occurred')
+        return
+      }
+
+      // Successful 2FA
+      dispatch(
+        setAuthenticatedSession({
+          token: response.data.accessToken,
+          user: response.data.user,
+        }),
+      )
+
+      // Determine next destination
+      const destination = await resolveAuthenticatedDestination({
+        accessToken: response.data.accessToken,
+        locale,
+      })
+
+      toast.success('Verification successful')
+      router.push(destination)
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Verification failed. Please check your code.',
+      )
+      toast.error(errorMessage)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    try {
+      await sendTwoFactorEmailOtp({ tempToken }).unwrap()
+      setSecondsLeft(RESEND_SECONDS)
+      toast.success('Code resent to your email')
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Failed to resend code. Please try again.',
+      )
+      toast.error(errorMessage)
+    }
+  }
 
   return (
     <main className="min-h-dvh flex flex-col">
@@ -45,27 +140,22 @@ const TwoFactorAuthenticationEmail = () => {
                 </p>
               </div>
 
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  console.log('Email 2FA OTP submitted:', otp)
-                }}
-              >
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-5">
-                  <OtpInputField
-                    length={6}
-                    onChange={setOtp}
-                    onComplete={(value) =>
-                      console.log('Email 2FA OTP complete:', value)
-                    }
-                  />
+                  <OtpInputField length={6} onChange={setOtp} value={otp} />
+                  {errors.otp && (
+                    <p className="mt-2 text-sm text-red-500">
+                      {errors.otp.message}
+                    </p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99]"
+                  disabled={isLoading}
+                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Verify & Continue
+                  {isLoading ? 'Verifying...' : 'Verify & Continue'}
                 </button>
 
                 <div className="mt-4 text-center text-sm text-gray-500">
@@ -74,12 +164,11 @@ const TwoFactorAuthenticationEmail = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        setSecondsLeft(RESEND_SECONDS)
-                      }}
-                      className="font-medium text-teal-700 hover:underline"
+                      onClick={handleResendOtp}
+                      disabled={isSendingOtp}
+                      className="font-medium text-teal-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Resend code
+                      {isSendingOtp ? 'Sending...' : 'Resend code'}
                     </button>
                   )}
                 </div>
@@ -87,7 +176,7 @@ const TwoFactorAuthenticationEmail = () => {
                 <p className="mt-4 text-center text-sm text-gray-500">
                   Didn&apos;t receive the email?{' '}
                   <Link
-                    href="/login/2fa"
+                    href={`/${locale}/login/2fa`}
                     className="font-medium text-teal-700 hover:underline"
                   >
                     Try another method
@@ -95,28 +184,28 @@ const TwoFactorAuthenticationEmail = () => {
                 </p>
               </form>
             </div>
-          </div>{' '}
+          </div>
           <div className="px-6 pb-6 flex sm:flex-row flex-col-reverse items-center justify-between flex-wrap text-sm text-gray-500">
             <p>
               &copy; {new Date().getFullYear()} StackRead. All rights reserved.
             </p>
             <div className="">
               <Link
-                href="/support"
+                href={`/${locale}/support`}
                 className="font-medium text-teal-700 hover:underline"
               >
                 Support
               </Link>{' '}
               |{' '}
               <Link
-                href="/terms"
+                href={`/${locale}/terms`}
                 className="font-medium text-teal-700 hover:underline"
               >
                 Terms of Service
               </Link>{' '}
               |{' '}
               <Link
-                href="/privacy"
+                href={`/${locale}/privacy`}
                 className="font-medium text-teal-700 hover:underline"
               >
                 Privacy Policy

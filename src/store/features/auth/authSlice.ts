@@ -15,6 +15,10 @@ const initialState: AuthState = {
   onboardingStatus: 'unknown',
   isHydrated: false,
   twoFactorEnabled: false,
+  emailInFlow: null,
+  resetToken: null,
+  selectedTwoFactorMethod: null,
+  rememberMe: false,
 }
 
 const authSlice = createSlice({
@@ -62,6 +66,27 @@ const authSlice = createSlice({
       Object.assign(state, initialState)
       state.isHydrated = true
     },
+    setEmailInFlow: (state, action: PayloadAction<string | null>) => {
+      state.emailInFlow = action.payload
+    },
+    setResetToken: (state, action: PayloadAction<string | null>) => {
+      state.resetToken = action.payload
+    },
+    setSelectedTwoFactorMethod: (
+      state,
+      action: PayloadAction<'totp' | 'email' | 'backup-code' | null>,
+    ) => {
+      state.selectedTwoFactorMethod = action.payload
+    },
+    setRememberMe: (state, action: PayloadAction<boolean>) => {
+      state.rememberMe = action.payload
+    },
+    clearAuthFlow: (state) => {
+      state.emailInFlow = null
+      state.resetToken = null
+      state.selectedTwoFactorMethod = null
+      state.rememberMe = false
+    },
   },
 })
 
@@ -73,6 +98,11 @@ export const {
   setOnboardingStatus,
   setHydratedToken,
   clearAuthState,
+  setEmailInFlow,
+  setResetToken,
+  setSelectedTwoFactorMethod,
+  setRememberMe,
+  clearAuthFlow,
 } = authSlice.actions
 
 export default authSlice.reducer

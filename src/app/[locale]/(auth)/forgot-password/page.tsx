@@ -2,12 +2,51 @@
 
 import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordSchema,
+} from '@/lib/validations/auth'
+import { useForgotPasswordMutation } from '@/store/features/auth/authApi'
+import { setEmailInFlow } from '@/store/features/auth/authSlice'
+import { useAppDispatch } from '@/store/hooks'
 
 const ForgotPasswordPage = () => {
-  const [email, setEmail] = useState('')
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+  const dispatch = useAppDispatch()
+
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordSchema>({
+    resolver: zodResolver(forgotPasswordSchema),
+  })
+
+  const onSubmit = async (data: ForgotPasswordSchema) => {
+    try {
+      await forgotPassword({ email: data.email }).unwrap()
+      dispatch(setEmailInFlow(data.email))
+      toast.success('Reset code sent to your email')
+      router.push(`/${locale}/reset-password`)
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(
+        error,
+        'Failed to send reset code. Please try again.',
+      )
+      toast.error(errorMessage)
+    }
+  }
 
   return (
     <main className="min-h-dvh flex flex-col">
@@ -26,41 +65,37 @@ const ForgotPasswordPage = () => {
                   Forgot Password
                 </h1>
                 <p className="text-slate-500">
-                  Enter your email address and we will send you a password reset
-                  link.
+                  Enter your email address and we'll send you a code to reset
+                  your password.
                 </p>
               </div>
 
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  console.log('Forgot password request:', email)
-                }}
-              >
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-4">
                   <InputField
                     icon={<Mail size={17} />}
                     type="email"
-                    name="email"
                     label="Email Address"
                     required
                     placeholder="john@example.com"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    {...register('email')}
+                    error={errors.email?.message}
+                    disabled={isLoading}
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99]"
+                  disabled={isLoading}
+                  className="h-12 w-full rounded-lg bg-teal-700 text-sm font-medium text-white transition-all duration-150 hover:bg-teal-800 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Send Reset Link
+                  {isLoading ? 'Sending...' : 'Send Reset Code'}
                 </button>
 
                 <p className="mt-4 text-center text-sm text-gray-500">
                   Remember your password?{' '}
                   <Link
-                    href="/login"
+                    href={`/${locale}/login`}
                     className="font-medium text-teal-700 hover:underline"
                   >
                     Log in
@@ -68,7 +103,7 @@ const ForgotPasswordPage = () => {
                 </p>
               </form>
             </div>
-          </div>{' '}
+          </div>
           <div className="px-6 pb-6 flex sm:flex-row flex-col-reverse items-center justify-between flex-wrap text-sm text-gray-500">
             <p>
               &copy; {new Date().getFullYear()} StackRead. All rights reserved.

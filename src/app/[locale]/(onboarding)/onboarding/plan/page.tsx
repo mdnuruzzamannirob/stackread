@@ -1,11 +1,12 @@
-/* eslint-disable react-hooks/purity */
 'use client'
 
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
 import { cn } from '@/lib/utils'
-import { Star } from 'lucide-react'
+import { useGetPlansQuery } from '@/store/features/subscriptions/subscriptionsApi'
+import { useAppSelector } from '@/store/hooks'
+import { Loader2, Star } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 type BillingCycle = 'monthly' | 'annually'
 
@@ -15,6 +16,7 @@ type Feature = {
 }
 
 type UiPlan = {
+  id: string
   code: string
   name: string
   desc: string
@@ -26,63 +28,65 @@ type UiPlan = {
   features: Feature[]
 }
 
-const uiPlans: UiPlan[] = [
-  {
-    code: 'FREE',
-    name: 'Free',
-    desc: 'Start reading with free books.',
-    free: true,
-    monthlyPrice: null,
-    annualPrice: null,
-    cta: 'Get started free',
-    features: [
+// Feature mapping based on plan access level
+const getFeaturesByAccessLevel = (
+  accessLevel: string,
+  features: string[],
+): Feature[] => {
+  const allFeatures = [
+    'Access free books only',
+    'Web reader access',
+    'Reading progress sync',
+    'Highlights & annotations',
+    'Multi-device access',
+    'AI tools',
+    'Audiobook access',
+  ]
+
+  if (accessLevel === 'free') {
+    return [
       { label: 'Access free books only', available: true },
       { label: 'Web reader access', available: true },
       { label: 'Reading progress sync', available: false },
       { label: 'Highlights & annotations', available: false },
       { label: 'Multi-device access', available: false },
-      { label: 'AI tools ', available: false },
+      { label: 'AI tools', available: false },
       { label: 'Audiobook access', available: false },
-    ],
-  },
-  {
-    code: 'PREMIUM',
-    name: 'Premium',
-    desc: 'For regular readers.',
-    free: false,
-    featured: true,
-    monthlyPrice: 9.99,
-    annualPrice: 7.49,
-    cta: 'Go Premium',
-    features: [
+    ]
+  }
+
+  if (accessLevel === 'basic') {
+    return [
       { label: 'Access free + pro books', available: true },
       { label: 'Web reader access', available: true },
       { label: 'Reading progress sync', available: true },
       { label: 'Highlights & annotations', available: true },
-      { label: 'Multi-device access (up to 3)', available: true },
+      {
+        label: `Multi-device access (up to ${features.find((f) => f.includes('devices')) || '3'})`,
+        available: true,
+      },
       { label: 'AI tools (limited access)', available: true },
       { label: 'Audiobook access', available: false },
-    ],
-  },
-  {
-    code: 'pro',
-    name: 'Pro',
-    desc: 'Full reading experience.',
-    free: false,
-    monthlyPrice: 18.99,
-    annualPrice: 14.24,
-    cta: 'Go Pro',
-    features: [
+    ]
+  }
+
+  if (accessLevel === 'premium') {
+    return [
       { label: 'Access all books (free + pro + premium)', available: true },
       { label: 'Web reader access', available: true },
       { label: 'Reading progress sync', available: true },
       { label: 'Highlights & annotations', available: true },
-      { label: 'Multi-device access (up to 5)', available: true },
+      {
+        label: `Multi-device access (up to ${features.find((f) => f.includes('devices')) || '5'})`,
+        available: true,
+      },
       { label: 'AI tools (full access)', available: true },
       { label: 'Audiobook access', available: true },
-    ],
-  },
-]
+    ]
+  }
+
+  return allFeatures.map((f) => ({ label: f, available: true }))
+}
 
 function CheckIcon() {
   return (
@@ -122,11 +126,47 @@ export default function OnboardingPlanSelectionPage() {
   const locale = params.locale ?? 'en'
   const router = useRouter()
   const [billing, setBilling] = useState<BillingCycle>('monthly')
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  // Get user from Redux store
+  const user = useAppSelector((state) => state.auth.user)
+  const userId = user?.id
+
+  // Fetch plans from backend
+  const { data: plansResponse, isLoading: isPlansLoading } = useGetPlansQuery()
 
   const isAnnual = billing === 'annually'
 
+  // Convert backend plans to UI format
+  const uiPlans = useMemo<UiPlan[]>(() => {
+    const plans = plansResponse?.data ?? []
+    return plans
+      .map((plan) => ({
+        id: plan.id,
+        code: plan.code,
+        name: plan.name,
+        desc: plan.description,
+        free: plan.isFree,
+        featured: plan.code === 'PREMIUM', // Mark Premium as featured
+        monthlyPrice: plan.price,
+        annualPrice: plan.price * 0.75, // Assume 25% discount for annual
+        cta: plan.isFree
+          ? 'Get started free'
+          : plan.code === 'FREE'
+            ? 'Get started free'
+            : 'Select Plan',
+        features: getFeaturesByAccessLevel(plan.accessLevel, plan.features),
+      }))
+      .sort((a, b) => {
+        // Sort by featured status first
+        if (a.featured) return -1
+        if (b.featured) return 1
+        return 0
+      })
+  }, [plansResponse])
+
   const getPrice = (plan: UiPlan) =>
-    isAnnual ? plan.annualPrice : plan.monthlyPrice
+    isAnnual && !plan.free ? plan.annualPrice : plan.monthlyPrice
 
   const getBilledNote = (plan: UiPlan) => {
     if (plan.free) return 'No credit card required'
@@ -135,29 +175,48 @@ export default function OnboardingPlanSelectionPage() {
     return 'Billed month to month'
   }
 
-  const handlePlanClick = (plan: UiPlan) => {
-    const outcome = Math.random() < 0.5 ? 'success' : 'failed'
-    const price = getPrice(plan)
-    const searchParams = new URLSearchParams({
-      plan_id: plan.code,
-      plan_name: plan.name,
-      billing_cycle: billing,
-      price: price?.toFixed(2) ?? '0.00',
-      currency: 'USD',
-    })
-
-    if (plan.free) {
-      searchParams.set('is_free', 'true')
+  const handlePlanClick = async (plan: UiPlan) => {
+    if (!userId) {
+      console.error('User ID not available')
+      return
     }
 
-    if (outcome === 'failed') {
-      searchParams.set('error_code', 'card_declined')
-      searchParams.set('card_last4', '4242')
-    }
+    setIsProcessing(true)
 
-    router.push(
-      `/${locale}/onboarding/payment/${outcome}?${searchParams.toString()}`,
-    )
+    try {
+      if (plan.free) {
+        // For free plans, navigate to payment success
+        const searchParams = new URLSearchParams({
+          plan_id: plan.code,
+          plan_name: plan.name,
+          billing_cycle: billing,
+          price: '0.00',
+          currency: 'USD',
+          is_free: 'true',
+        })
+
+        router.push(
+          `/${locale}/onboarding/payment/success?${searchParams.toString()}`,
+        )
+      } else {
+        // For paid plans, navigate to payment page where payment will be initiated
+        const price = getPrice(plan)
+        const searchParams = new URLSearchParams({
+          plan_id: plan.code,
+          plan_name: plan.name,
+          billing_cycle: billing,
+          price: price?.toFixed(2) ?? '0.00',
+          currency: 'USD',
+        })
+
+        router.push(
+          `/${locale}/onboarding/payment/pending?${searchParams.toString()}`,
+        )
+      }
+    } catch (error) {
+      console.error('Error selecting plan:', error)
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -208,90 +267,106 @@ export default function OnboardingPlanSelectionPage() {
       </div>
 
       {/* Plan Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {uiPlans.map((plan) => {
-          const isFeatured = plan.featured
-          const price = getPrice(plan)
+      {isPlansLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="animate-spin text-teal-600" size={32} />
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-3">
+          {uiPlans.map((plan) => {
+            const isFeatured = plan.featured
+            const price = getPrice(plan)
 
-          return (
-            <div
-              key={plan.code}
-              className={cn(
-                'relative flex h-full flex-col border-2 p-5',
-                isFeatured
-                  ? 'rounded-x-xl rounded-b-xl border-teal-600 border-t-transparent'
-                  : 'rounded-xl border-gray-100',
-              )}
-            >
-              {isFeatured ? (
-                <div className="absolute flex items-center gap-1 border-none justify-center -top-9 left-0 right-0 text-sm p-1 py-2 ring-2 text-center rounded-t-xl uppercase font-medium bg-teal-600 text-white ring-teal-600">
-                  <Star size={14} /> Recommended
-                </div>
-              ) : null}
-
-              <p className="text-xl font-semibold">{plan.name}</p>
-              <p className="text-sm text-gray-500 mt-0.5 mb-4">{plan.desc}</p>
-
-              <div className="flex items-baseline gap-1 mb-1">
-                {plan.free ? (
-                  <span className="text-3xl font-semibold text-gray-900">
-                    Free
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-3xl font-semibold text-gray-900">
-                      ${price?.toFixed(2)}
-                    </span>
-                    <span className="text-xs text-gray-500">/mo</span>
-                    {isAnnual && (
-                      <span className="text-xs text-gray-500 line-through ml-1">
-                        ${plan.monthlyPrice?.toFixed(2)}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mb-4">
-                {getBilledNote(plan)}
-              </p>
-
-              <hr className="border-gray-100 mb-4" />
-
-              <p className="text-xs uppercase tracking-widest text-gray-500 font-medium mb-3">
-                What&apos;s included
-              </p>
-
-              <ul className="space-y-2.5 flex-1 mb-5">
-                {plan.features.map((feat, i) => (
-                  <li
-                    key={i}
-                    className={cn(
-                      'flex items-start gap-2 text-sm leading-relaxed',
-                      feat.available ? 'text-gray-600' : 'text-gray-500',
-                    )}
-                  >
-                    {feat.available ? <CheckIcon /> : <CrossIcon />}
-                    <span>{feat.label}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                type="button"
-                onClick={() => handlePlanClick(plan)}
+            return (
+              <div
+                key={plan.code}
                 className={cn(
-                  'h-10 w-full rounded-lg text-sm font-medium transition-all duration-150',
+                  'relative flex h-full flex-col border-2 p-5',
                   isFeatured
-                    ? 'bg-teal-600 text-white hover:bg-teal-700'
-                    : 'border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300',
+                    ? 'rounded-x-xl rounded-b-xl border-teal-600 border-t-transparent'
+                    : 'rounded-xl border-gray-100',
                 )}
               >
-                {plan.cta}
-              </button>
-            </div>
-          )
-        })}
-      </div>
+                {isFeatured ? (
+                  <div className="absolute flex items-center gap-1 border-none justify-center -top-9 left-0 right-0 text-sm p-1 py-2 ring-2 text-center rounded-t-xl uppercase font-medium bg-teal-600 text-white ring-teal-600">
+                    <Star size={14} /> Recommended
+                  </div>
+                ) : null}
+
+                <p className="text-xl font-semibold">{plan.name}</p>
+                <p className="text-sm text-gray-500 mt-0.5 mb-4">{plan.desc}</p>
+
+                <div className="flex items-baseline gap-1 mb-1">
+                  {plan.free ? (
+                    <span className="text-3xl font-semibold text-gray-900">
+                      Free
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-semibold text-gray-900">
+                        ${price?.toFixed(2)}
+                      </span>
+                      <span className="text-xs text-gray-500">/mo</span>
+                      {isAnnual && (
+                        <span className="text-xs text-gray-500 line-through ml-1">
+                          ${plan.monthlyPrice?.toFixed(2)}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mb-4">
+                  {getBilledNote(plan)}
+                </p>
+
+                <hr className="border-gray-100 mb-4" />
+
+                <p className="text-xs uppercase tracking-widest text-gray-500 font-medium mb-3">
+                  What&apos;s included
+                </p>
+
+                <ul className="space-y-2.5 flex-1 mb-5">
+                  {plan.features.map((feat, i) => (
+                    <li
+                      key={i}
+                      className={cn(
+                        'flex items-start gap-2 text-sm leading-relaxed',
+                        feat.available ? 'text-gray-600' : 'text-gray-500',
+                      )}
+                    >
+                      {feat.available ? <CheckIcon /> : <CrossIcon />}
+                      <span>{feat.label}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  type="button"
+                  onClick={() => handlePlanClick(plan)}
+                  disabled={isProcessing}
+                  className={cn(
+                    'h-10 w-full rounded-lg text-sm font-medium transition-all duration-150 flex items-center justify-center gap-2',
+                    isProcessing
+                      ? 'opacity-50 cursor-not-allowed'
+                      : isFeatured
+                        ? 'bg-teal-600 text-white hover:bg-teal-700'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300',
+                  )}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    plan.cta
+                  )}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div className="flex justify-center">
         <button

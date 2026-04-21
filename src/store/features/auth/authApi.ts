@@ -14,19 +14,27 @@ type RegisterBody = {
   firstName: string
   lastName?: string
   email: string
+  phone: string
+  address: string
   password: string
   countryCode: string
+  agreeToTerms: boolean
 }
 
 type LoginBody = {
   email: string
   password: string
+  rememberMe?: boolean
 }
 
-type VerifyEmailBody = { token: string }
+type VerifyEmailBody = { email: string; otp: string }
 type EmailBody = { email: string }
 type VerifyResetOtpBody = { email: string; otp: string }
-type ResetPasswordBody = { resetToken: string; newPassword: string }
+type ResetPasswordBody = {
+  email: string
+  resetToken: string
+  newPassword: string
+}
 type TempTokenBody = { tempToken: string }
 type UpdateMeBody = {
   firstName?: string
@@ -54,9 +62,8 @@ type UpdateNotificationPreferencesBody = {
 
 type TwoFactorChallengeBody = {
   tempToken: string
-  otp?: string
-  emailOtp?: string
-  backupCode?: string
+  method: 'totp' | 'email' | 'backup-code'
+  verificationCode: string
 }
 
 type RefreshResponse = { accessToken: string }

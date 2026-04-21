@@ -34,6 +34,11 @@ export type AuthState = {
   onboardingStatus: 'unknown' | 'completed' | 'pending' | 'selected'
   isHydrated: boolean
   twoFactorEnabled: boolean
+  // Auth flow state
+  emailInFlow: string | null
+  resetToken: string | null
+  selectedTwoFactorMethod: 'totp' | 'email' | 'backup-code' | null
+  rememberMe: boolean
 }
 
 export type AuthTokens = {
