@@ -3,28 +3,121 @@ import type { AuthState } from '@/store/features/auth/types'
 
 type OnboardingStatusResponse = {
   status?: AuthState['onboardingStatus']
+  startedAt?: string
+  selectedPlanCode?: string
+  selectedPlanName?: string
+  selectedPlanPrice?: number
+  selectedBillingCycle?: 'monthly' | 'yearly'
+  selectedAt?: string
+  interests?: string[]
+  selectedLanguage?: string
+  completedAt?: string
 }
 
 type MeResponse = {
   isEmailVerified?: boolean
 }
 
-function resolveOnboardingDestination({
+export type OnboardingProgressStage =
+  | 'welcome'
+  | 'interests'
+  | 'language'
+  | 'plan'
+  | 'complete'
+  | 'dashboard'
+
+export type OnboardingPageStep =
+  | 'welcome'
+  | 'interests'
+  | 'language'
+  | 'plan'
+  | 'complete'
+
+export type OnboardingProgressSnapshot = Pick<
+  OnboardingStatusResponse,
+  'status' | 'startedAt' | 'selectedPlanCode' | 'interests' | 'selectedLanguage'
+>
+
+function hasSelectedLanguage(language?: string) {
+  return language === 'en' || language === 'bn'
+}
+
+function hasSelectedInterests(interests?: string[]) {
+  return Array.isArray(interests) && interests.length > 0
+}
+
+function hasSelectedPlan(snapshot?: OnboardingProgressSnapshot | null) {
+  return Boolean(
+    snapshot?.status === 'selected' ||
+      (typeof snapshot?.selectedPlanCode === 'string' &&
+        snapshot.selectedPlanCode.trim() !== ''),
+  )
+}
+
+function getOnboardingProgressRoute(
+  locale: string,
+  stage: Exclude<OnboardingProgressStage, 'dashboard'>,
+) {
+  return `/${locale}/onboarding/${stage}`
+}
+
+export function resolveOnboardingProgressStage(
+  snapshot?: OnboardingProgressSnapshot | null,
+): OnboardingProgressStage {
+  if (snapshot?.status === 'completed') {
+    return 'dashboard'
+  }
+
+  const interestsSelected = hasSelectedInterests(snapshot?.interests)
+  const languageSelected = hasSelectedLanguage(snapshot?.selectedLanguage)
+  const planSelected = hasSelectedPlan(snapshot)
+  const hasStartedOnboarding = Boolean(
+    snapshot?.startedAt || interestsSelected || languageSelected || planSelected,
+  )
+
+  if (!hasStartedOnboarding) {
+    return 'welcome'
+  }
+
+  if (!interestsSelected) {
+    return 'interests'
+  }
+
+  if (!languageSelected) {
+    return 'language'
+  }
+
+  if (!planSelected) {
+    return 'plan'
+  }
+
+  return 'plan'
+}
+
+export function resolveOnboardingStepRedirect({
   locale,
-  onboardingStatus,
+  page,
+  onboarding,
 }: {
   locale: string
-  onboardingStatus: AuthState['onboardingStatus'] | null
+  page: OnboardingPageStep
+  onboarding?: OnboardingProgressSnapshot | null
 }) {
-  if (onboardingStatus === 'pending') {
-    return `/${locale}/onboarding/welcome`
+  const stage = resolveOnboardingProgressStage(onboarding)
+
+  if (stage === 'dashboard') {
+    return `/${locale}/dashboard`
   }
 
-  if (onboardingStatus === 'selected') {
-    return `/${locale}/onboarding/plan`
+  if (page === 'plan' && stage === 'complete') {
+    return null
   }
 
-  return `/${locale}/dashboard`
+  if (page === stage) {
+    return null
+  }
+
+  return getOnboardingProgressRoute(locale, stage)
 }
 
 export async function fetchOnboardingStatus(accessToken?: string | null) {
@@ -42,13 +135,7 @@ export async function fetchOnboardingStatus(accessToken?: string | null) {
   }
 
   const json = (await response.json()) as { data?: OnboardingStatusResponse }
-  const status = json.data?.status
-
-  if (status === 'pending' || status === 'selected' || status === 'completed') {
-    return status
-  }
-
-  return null
+  return json.data ?? null
 }
 
 async function fetchMe(accessToken?: string | null) {
@@ -69,16 +156,6 @@ async function fetchMe(accessToken?: string | null) {
   return json.data ?? null
 }
 
-export function resolvePostAuthDestination({
-  locale,
-  onboardingStatus,
-}: {
-  locale: string
-  onboardingStatus: AuthState['onboardingStatus'] | null
-}) {
-  return resolveOnboardingDestination({ locale, onboardingStatus })
-}
-
 export async function resolveAuthenticatedDestination({
   accessToken,
   locale,
@@ -88,8 +165,20 @@ export async function resolveAuthenticatedDestination({
 }) {
   const onboardingStatus = await fetchOnboardingStatus(accessToken)
 
-  if (onboardingStatus === 'pending' || onboardingStatus === 'selected') {
-    return resolveOnboardingDestination({ locale, onboardingStatus })
+  if (!onboardingStatus) {
+    const me = await fetchMe(accessToken)
+
+    if (me && !me.isEmailVerified) {
+      return `/${locale}/register/verify-email`
+    }
+
+    return `/${locale}/dashboard`
+  }
+
+  const stage = resolveOnboardingProgressStage(onboardingStatus)
+
+  if (stage !== 'dashboard') {
+    return getOnboardingProgressRoute(locale, stage)
   }
 
   const me = await fetchMe(accessToken)
@@ -98,5 +187,5 @@ export async function resolveAuthenticatedDestination({
     return `/${locale}/register/verify-email`
   }
 
-  return resolveOnboardingDestination({ locale, onboardingStatus })
+  return `/${locale}/dashboard`
 }

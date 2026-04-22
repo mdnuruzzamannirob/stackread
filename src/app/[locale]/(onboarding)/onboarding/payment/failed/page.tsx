@@ -17,6 +17,7 @@ type StripeErrorInfo = {
   cardLast4: string | null
   planName: string
   planPrice: string
+  billingCycle: 'monthly' | 'yearly'
   sessionId: string
 }
 
@@ -52,6 +53,16 @@ function readableReason(code: string): string {
   return DECLINE_REASONS[code] ?? 'Unknown error'
 }
 
+function LoadingDots() {
+  return (
+    <span className="inline-flex items-center gap-1.5 align-middle">
+      <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.2s]" />
+      <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.1s]" />
+      <span className="size-1.5 animate-bounce rounded-full bg-current" />
+    </span>
+  )
+}
+
 // ------- main component -------
 export default function OnboardingPaymentFailedPage() {
   const params = useParams<{ locale: string }>()
@@ -72,6 +83,8 @@ export default function OnboardingPaymentFailedPage() {
     const sessionId = searchParams.get('session_id') ?? ''
     const planName = searchParams.get('plan_name') ?? 'Premium'
     const price = searchParams.get('price') ?? '14.99'
+    const billingCycle =
+      searchParams.get('billing_cycle') === 'yearly' ? 'yearly' : 'monthly'
     const code = searchParams.get('error_code') ?? 'card_declined'
 
     // Fetch full session details from your API if you need card info
@@ -82,7 +95,8 @@ export default function OnboardingPaymentFailedPage() {
       reason: readableReason(code),
       cardLast4: searchParams.get('card_last4'),
       planName,
-      planPrice: `$${price}/mo`,
+      billingCycle,
+      planPrice: `$${price}/${billingCycle === 'yearly' ? 'yr' : 'mo'}`,
     })
   }, [searchParams])
 
@@ -102,6 +116,7 @@ export default function OnboardingPaymentFailedPage() {
       const response = await selectPlan({
         planCode,
         locale,
+        billingCycle: error.billingCycle,
       }).unwrap()
 
       const data = response.data
@@ -133,20 +148,23 @@ export default function OnboardingPaymentFailedPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-16 bg-white">
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-2xl text-center">
         {/* ── REDIRECTING STATE ── */}
         {stage === 'redirecting' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-50 mb-6">
+            <div className="inline-flex items-center justify-center size-14 rounded-full bg-red-50 mb-6">
               <RefreshCw
-                className="w-6 h-6 text-red-700 animate-spin"
+                className="size-6 text-red-700 animate-spin"
                 style={{ animationDuration: '0.8s' }}
               />
             </div>
             <h1 className="text-lg font-semibold text-slate-900 mb-1.5">
               {loadingMsg}
             </h1>
-            <p className="text-sm text-slate-500">Please wait...</p>
+            <p className="text-sm text-slate-500">
+              Please wait while we retry the checkout verification{' '}
+              <LoadingDots />
+            </p>
           </div>
         )}
 
@@ -154,7 +172,7 @@ export default function OnboardingPaymentFailedPage() {
         {stage === 'failed' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             {/* Icon */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-5">
+            <div className="inline-flex items-center justify-center size-16 rounded-full bg-red-50 mb-5">
               <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
                 <path
                   d="M7 7l14 14M21 7L7 21"
@@ -174,7 +192,7 @@ export default function OnboardingPaymentFailedPage() {
 
             {/* Error detail card */}
             {error && (
-              <div className="border border-red-100 rounded-xl p-5 text-left mb-4 animate-in slide-in-from-bottom-2 duration-500 delay-75">
+              <div className="border border-red-100 rounded-3xl bg-white p-5 text-left mb-4 shadow-sm animate-in slide-in-from-bottom-2 duration-500 delay-75">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-red-700 mb-3.5">
                   Error details
                 </p>
@@ -209,29 +227,27 @@ export default function OnboardingPaymentFailedPage() {
             )}
 
             {/* Tips */}
-            <div className="text-left mb-4 animate-in slide-in-from-bottom-2 duration-500 delay-100">
-              <p className="text-[10px] font-bold  uppercase tracking-widest">
+            <div className="text-left mb-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm animate-in slide-in-from-bottom-2 duration-500 delay-100">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-700">
                 Things to try
               </p>
 
               <div className="flex flex-col">
                 {TIPS.map((tip, i) => (
                   <div key={i}>
-                    <div className="flex items-center gap-1 py-1">
-                      <div className="shrink-0 w-8 h-8 rounded-full border border-white/20 flex items-center justify-center">
+                    <div className="flex items-center gap-3 py-3">
+                      <div className="shrink-0 flex size-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
                         <tip.icon
                           size={14}
                           strokeWidth={1.75}
-                          className="text-black/70"
+                          className="text-slate-700"
                         />
                       </div>
-                      <span className="text-xs text-black/80 leading-snug">
+                      <span className="text-xs text-slate-700 leading-snug">
                         {tip.message}
                       </span>
                     </div>
-                    {i < TIPS.length - 1 && (
-                      <div className="h-px bg-black/10" />
-                    )}
+                    {i < TIPS.length - 1 && <div className="h-px bg-slate-100" />}
                   </div>
                 ))}
               </div>

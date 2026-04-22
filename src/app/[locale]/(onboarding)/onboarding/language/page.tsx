@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 
 import { OnboardingShell } from '@/components/OnboardingShell'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useOnboardingStepGuard } from '@/lib/auth/onboarding-flow'
 import { cn } from '@/lib/utils'
 import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 
@@ -30,7 +31,7 @@ export default function OnboardingLanguagePage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
-  const { data: statusResponse } = onboardingApi.useGetOnboardingStatusQuery()
+  const { onboarding } = useOnboardingStepGuard('language', locale)
   const [saveLanguage, { isLoading }] =
     onboardingApi.useSaveOnboardingLanguageMutation()
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'bn'>(() => {
@@ -40,11 +41,11 @@ export default function OnboardingLanguagePage() {
   })
 
   useEffect(() => {
-    const language = statusResponse?.data?.selectedLanguage
+    const language = onboarding?.selectedLanguage
     if (language === 'en' || language === 'bn') {
       setSelectedLanguage(language)
     }
-  }, [statusResponse])
+  }, [onboarding])
 
   const continueToNextStep = () => {
     void (async () => {

@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 
 import { OnboardingShell } from '@/components/OnboardingShell'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useOnboardingStepGuard } from '@/lib/auth/onboarding-flow'
 import { cn } from '@/lib/utils'
 import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 
@@ -35,13 +36,13 @@ export default function OnboardingInterestsPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
+  const { onboarding } = useOnboardingStepGuard('interests', locale)
   const {
     data: interestsResponse,
     isLoading: isLoadingInterests,
     isError: isInterestsError,
     refetch,
   } = onboardingApi.useGetOnboardingInterestsQuery()
-  const { data: statusResponse } = onboardingApi.useGetOnboardingStatusQuery()
   const [saveInterests, { isLoading }] =
     onboardingApi.useSaveOnboardingInterestsMutation()
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
@@ -52,11 +53,11 @@ export default function OnboardingInterestsPage() {
   )
 
   useEffect(() => {
-    const nextInterests = statusResponse?.data?.interests
+    const nextInterests = onboarding?.interests
     if (Array.isArray(nextInterests)) {
       setSelectedInterests(nextInterests)
     }
-  }, [statusResponse])
+  }, [onboarding])
 
   const toggleInterest = (code: string) => {
     setSelectedInterests((current) =>

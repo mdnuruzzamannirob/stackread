@@ -1,8 +1,8 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
 
 import { OnboardingShell } from '@/components/OnboardingShell'
 import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useOnboardingStepGuard } from '@/lib/auth/onboarding-flow'
 import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 import { BookOpen, Globe2, Layers } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
@@ -32,15 +32,12 @@ export default function OnboardingCompletePage() {
   const params = useParams<{ locale: string }>()
   const locale = params?.locale ?? 'en'
   const router = useRouter()
-  const { data: statusResponse } = onboardingApi.useGetOnboardingStatusQuery()
-  const [completeOnboarding, { isLoading }] =
+  const { onboarding, isLoading: isOnboardingLoading } = useOnboardingStepGuard(
+    'complete',
+    locale,
+  )
+  const [completeOnboarding, { isLoading: isCompleting }] =
     onboardingApi.useCompleteOnboardingMutation()
-
-  // const handleStart = () => {
-  //   window.localStorage.removeItem(INTERESTS_KEY)
-  //   window.localStorage.removeItem(LANGUAGE_KEY)
-  //   router.push(`/${locale}/library`)
-  // }
 
   const handleDashboard = () => {
     void (async () => {
@@ -53,7 +50,7 @@ export default function OnboardingCompletePage() {
     })()
   }
 
-  const status = statusResponse?.data
+  const status = onboarding
   const interests = Array.isArray(status?.interests) ? status.interests : []
   const language = status?.selectedLanguage
   const selectedOn = status?.selectedAt
@@ -63,6 +60,8 @@ export default function OnboardingCompletePage() {
         day: 'numeric',
       })
     : 'Not available'
+  const billingCycleLabel =
+    status?.selectedBillingCycle === 'yearly' ? 'Annually' : 'Monthly'
 
   const summary = [
     {
@@ -84,7 +83,7 @@ export default function OnboardingCompletePage() {
       icon: BookOpen,
       label: 'Plan',
       value: status?.selectedPlanName
-        ? `${status.selectedPlanName} (USD ${status.selectedPlanPrice ?? 0})`
+        ? `${status.selectedPlanName} (${billingCycleLabel}, USD ${status.selectedPlanPrice ?? 0})`
         : 'Not selected',
     },
     {
@@ -93,6 +92,41 @@ export default function OnboardingCompletePage() {
       value: selectedOn,
     },
   ]
+
+  if (isOnboardingLoading) {
+    return (
+      <OnboardingShell
+        stepLabel="Step 5 of 5"
+        progress={5}
+        title="You're all set."
+        subtitle="Your personalized library is ready. Dive in whenever you are."
+      >
+        <div className="space-y-8 animate-pulse">
+          <div className="h-px bg-gray-200" />
+
+          <div className="grid grid-cols-2 gap-6 py-10 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`complete-skeleton-${index}`}
+                className="space-y-3 text-center"
+              >
+                <div className="mx-auto size-6 rounded-full bg-gray-200" />
+                <div className="mx-auto h-3 w-20 rounded-full bg-gray-100" />
+                <div className="mx-auto h-4 w-28 rounded bg-gray-200" />
+              </div>
+            ))}
+          </div>
+
+          <div className="h-px bg-gray-200" />
+
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="h-11 w-28 rounded-lg bg-gray-100" />
+            <div className="h-11 w-40 rounded-lg bg-gray-200" />
+          </div>
+        </div>
+      </OnboardingShell>
+    )
+  }
 
   return (
     <OnboardingShell
@@ -139,11 +173,11 @@ export default function OnboardingCompletePage() {
 
         <button
           type="button"
-          disabled={isLoading}
+          disabled={isCompleting}
           className="rounded-lg bg-teal-600 font-medium px-6 py-2.5 text-white transition-all duration-150 hover:bg-teal-700"
           onClick={handleDashboard}
         >
-          {isLoading ? 'Saving...' : 'Go to Dashboard'}
+          {isCompleting ? 'Saving...' : 'Go to Dashboard'}
         </button>
       </div>
     </OnboardingShell>

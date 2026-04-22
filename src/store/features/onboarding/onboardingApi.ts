@@ -4,18 +4,32 @@ import { baseApi } from '@/store/baseApi'
 export type OnboardingPlan = {
   code: string
   name: string
+  description: string
+  monthlyPrice: number
+  yearlyPrice: number
   price: number
   billingCycle?: string
   isPaid?: boolean
+  recommended?: boolean
+  features?: string[]
+}
+
+export type SelectedOnboardingPlan = {
+  code: string
+  name: string
+  price: number
+  billingCycle?: 'monthly' | 'yearly'
 }
 
 export type OnboardingStatus = 'pending' | 'selected' | 'completed'
 
 export type OnboardingStatusResponse = {
   status: OnboardingStatus
+  startedAt?: string
   selectedPlanCode?: string
   selectedPlanName?: string
   selectedPlanPrice?: number
+  selectedBillingCycle?: 'monthly' | 'yearly'
   selectedAt?: string
   interests?: string[]
   selectedLanguage?: string
@@ -30,6 +44,7 @@ export type OnboardingInterestOption = {
 export type SelectOnboardingPlanBody = {
   planCode: string
   locale?: 'en' | 'bn'
+  billingCycle?: 'monthly' | 'yearly'
 }
 
 export type CompleteOnboardingBody = {
@@ -53,6 +68,8 @@ export type SaveOnboardingLanguageResponse = {
   language: string
 }
 
+export type StartOnboardingResponse = OnboardingStatusResponse
+
 export type ConfirmOnboardingPaymentBody = {
   sessionId: string
   reference?: string
@@ -66,7 +83,7 @@ export type ConfirmOnboardingPaymentResponse = {
 
 export type SelectOnboardingPlanResponse = {
   id: string
-  plan: OnboardingPlan
+  plan: SelectedOnboardingPlan
   status: OnboardingStatus
   nextStep: 'redirect_to_payment' | 'onboarding_completed'
   checkout_url?: string
@@ -94,6 +111,16 @@ export const onboardingApi = baseApi.injectEndpoints({
         method: 'GET',
       }),
       providesTags: ['Onboarding'],
+    }),
+    startOnboarding: builder.mutation<
+      ApiEnvelope<StartOnboardingResponse>,
+      void
+    >({
+      query: () => ({
+        url: '/onboarding/start',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Onboarding'],
     }),
     getOnboardingInterests: builder.query<
       ApiEnvelope<OnboardingInterestOption[]>,
@@ -166,6 +193,7 @@ export const onboardingApi = baseApi.injectEndpoints({
 export const {
   useGetOnboardingPlansQuery,
   useGetOnboardingStatusQuery,
+  useStartOnboardingMutation,
   useGetOnboardingInterestsQuery,
   useLazyGetOnboardingStatusQuery,
   useSelectOnboardingPlanMutation,

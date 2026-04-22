@@ -1,8 +1,11 @@
 'use client'
 
 import { OnboardingShell } from '@/components/OnboardingShell'
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 import { Book, BookOpen, Layers, Smile, Users, WifiOff } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 const welcomeOptions = [
   { title: '50k+', description: 'Books available', icon: Book },
@@ -16,9 +19,20 @@ const OnboardingWelcomePage = () => {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
+  const [startOnboarding, { isLoading: isStarting }] =
+    onboardingApi.useStartOnboardingMutation()
 
   const persistAndContinue = () => {
-    router.push(`/${locale}/onboarding/interests`)
+    void (async () => {
+      try {
+        await startOnboarding().unwrap()
+        router.push(`/${locale}/onboarding/interests`)
+      } catch (error) {
+        toast.error(
+          getApiErrorMessage(error, 'Unable to start onboarding right now.'),
+        )
+      }
+    })()
   }
 
   return (
@@ -50,13 +64,14 @@ const OnboardingWelcomePage = () => {
         })}
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-end">
         <button
           type="button"
-          className="rounded-lg bg-teal-600 font-medium px-6 py-2.5 text-white"
+          disabled={isStarting}
+          className="rounded-lg bg-teal-600 font-medium px-6 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-70"
           onClick={persistAndContinue}
         >
-          Continue
+          {isStarting ? 'Starting...' : 'Continue'}
         </button>
       </div>
     </OnboardingShell>

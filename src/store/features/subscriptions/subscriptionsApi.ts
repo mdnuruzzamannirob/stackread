@@ -45,6 +45,8 @@ export type PlanSummary = {
   code: string
   name: string
   description: string
+  monthlyPrice: number
+  yearlyPrice: number
   price: number
   currency: string
   durationDays: number
@@ -53,6 +55,7 @@ export type PlanSummary = {
   accessLevel: 'free' | 'basic' | 'premium'
   features: string[]
   isFree: boolean
+  recommended: boolean
   stripeProductId?: string
   stripePriceId?: string
   isActive: boolean
