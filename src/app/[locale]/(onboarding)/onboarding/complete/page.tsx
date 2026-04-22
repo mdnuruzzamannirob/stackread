@@ -2,9 +2,12 @@
 'use client'
 
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 import { BookOpen, Globe2, Layers } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 // ─── Storage keys ─────────────────────────────────────────────────────────────
 const INTERESTS_KEY = 'stackread:onboarding-interests'
@@ -59,6 +62,8 @@ export default function OnboardingCompletePage() {
 
   const [interests, setInterests] = useState<string[]>([])
   const [language, setLanguage] = useState<'en' | 'bn'>('en')
+  const [completeOnboarding, { isLoading }] =
+    onboardingApi.useCompleteOnboardingMutation()
 
   useEffect(() => {
     setInterests(readInterests())
@@ -72,9 +77,16 @@ export default function OnboardingCompletePage() {
   // }
 
   const handleDashboard = () => {
-    window.localStorage.removeItem(INTERESTS_KEY)
-    window.localStorage.removeItem(LANGUAGE_KEY)
-    router.push(`/${locale}/dashboard`)
+    void (async () => {
+      try {
+        await completeOnboarding({ agreeToTerms: true }).unwrap()
+        window.localStorage.removeItem(INTERESTS_KEY)
+        window.localStorage.removeItem(LANGUAGE_KEY)
+        router.push(`/${locale}/dashboard`)
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Unable to complete onboarding.'))
+      }
+    })()
   }
 
   const summary = [
@@ -140,10 +152,11 @@ export default function OnboardingCompletePage() {
 
         <button
           type="button"
+          disabled={isLoading}
           className="rounded-lg bg-teal-600 font-medium px-6 py-2.5 text-white transition-all duration-150 hover:bg-teal-700"
           onClick={handleDashboard}
         >
-          Go to Dashboard
+          {isLoading ? 'Saving...' : 'Go to Dashboard'}
         </button>
       </div>
     </OnboardingShell>

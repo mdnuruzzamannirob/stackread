@@ -1,6 +1,10 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import {
+  useGetPlansQuery,
+  useInitiateStripePaymentMutation,
+} from '@/store/features/subscriptions/subscriptionsApi'
 import { CreditCard, Globe, LayoutGrid, RefreshCw } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -55,6 +59,8 @@ export default function OnboardingPaymentFailedPage() {
   const locale = params?.locale ?? 'en'
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: plansResponse } = useGetPlansQuery()
+  const [initiatePayment] = useInitiateStripePaymentMutation()
 
   const [stage, setStage] = useState<Stage>('failed')
   const [error, setError] = useState<StripeErrorInfo | null>(null)
@@ -89,17 +95,24 @@ export default function OnboardingPaymentFailedPage() {
     setStage('redirecting')
 
     try {
-      const res = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: error.planName.toLowerCase(),
-          locale,
-          returnUrl: `/${locale}/onboarding/payment`,
-        }),
-      })
+      const selectedPlan = plansResponse?.data?.find(
+        (plan) =>
+          plan.code === (searchParams.get('plan_id') ?? '').toUpperCase(),
+      )
 
-      const { url } = await res.json()
+      if (!selectedPlan) {
+        throw new Error('Plan not found')
+      }
+
+      const res = await initiatePayment({
+        planId: selectedPlan.id,
+        gateway: 'stripe',
+        autoRenew: true,
+      }).unwrap()
+
+      const url =
+        res.data?.checkout_url || res.data?.redirectUrl || res.data?.url
+
       if (!url) throw new Error('No checkout URL returned')
       window.location.href = url
     } catch {

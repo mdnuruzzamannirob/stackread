@@ -3,30 +3,31 @@
 import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
-import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import { applyAuthenticatedSession } from '@/lib/auth/client-session'
+import { persistTempToken } from '@/lib/auth/temp-token'
 import type { LoginSchema } from '@/lib/validations/auth'
 import { loginSchema } from '@/lib/validations/auth'
 import { authApi } from '@/store/features/auth/authApi'
 import {
-  setAuthenticatedSession,
   setEmailInFlow,
   setLoginOutcome,
+  setRememberMe,
 } from '@/store/features/auth/authSlice'
+import { useAppDispatch } from '@/store/hooks'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Lock, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useDispatch } from 'react-redux'
 import { toast } from 'sonner'
 
 const LoginPage = () => {
   const router = useRouter()
   const params = useParams()
   const locale = params.locale as string
-  const dispatch = useDispatch()
-  const [rememberMe, setRememberMe] = useState(false)
+  const dispatch = useAppDispatch()
+  const [rememberMe, setRememberMeChecked] = useState(false)
 
   const [login, { isLoading }] = authApi.useLoginMutation()
 
@@ -57,24 +58,16 @@ const LoginPage = () => {
         dispatch(setRememberMe(rememberMe))
         dispatch(setEmailInFlow(data.email))
         dispatch(setLoginOutcome(response.data))
-        router.push(`/${locale}/login/2fa`)
+        persistTempToken(response.data.tempToken)
+        router.push(`/${locale}/2fa`)
       } else {
-        // Successful login - save token and user
-        dispatch(
-          setAuthenticatedSession({
-            token: response.data.accessToken,
-            user: response.data.user,
-          }),
-        )
-
-        // Determine next destination based on onboarding status
-        const destination = await resolveAuthenticatedDestination({
-          accessToken: response.data.accessToken,
-          locale,
+        applyAuthenticatedSession(dispatch, {
+          token: response.data.token,
+          user: response.data.user,
         })
 
         toast.success('Logged in successfully')
-        router.push(destination)
+        router.push(`/${locale}/dashboard`)
       }
     } catch (error) {
       const errorMessage = getApiErrorMessage(
@@ -144,7 +137,7 @@ const LoginPage = () => {
 
                 <div
                   className="group mb-5 flex w-fit cursor-pointer select-none items-start gap-3"
-                  onClick={() => setRememberMe(!rememberMe)}
+                  onClick={() => setRememberMeChecked(!rememberMe)}
                 >
                   <div
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all duration-150 ${

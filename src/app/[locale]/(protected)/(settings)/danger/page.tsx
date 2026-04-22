@@ -42,7 +42,7 @@ export default function DangerPage() {
 
       dispatch(clearAuthState())
       toast.success('Your account has been deleted successfully.')
-      router.replace(`/${params.locale}/auth/login`)
+      router.replace(`/${params.locale}/login`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Unable to delete account.'))
     }

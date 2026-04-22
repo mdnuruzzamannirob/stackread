@@ -59,7 +59,7 @@ export function resolvePostAuthDestination({
   onboardingStatus: AuthState['onboardingStatus'] | null
 }) {
   if (onboardingStatus === 'pending' || onboardingStatus === 'selected') {
-    return `/${locale}/onboarding/plan`
+    return `/${locale}/onboarding/welcome`
   }
 
   return `/${locale}/dashboard`
@@ -81,7 +81,7 @@ export async function resolveAuthenticatedDestination({
   const me = await fetchMe(accessToken)
 
   if (me && !me.isEmailVerified) {
-    return `/${locale}/auth/check-email`
+    return `/${locale}/verify-email`
   }
 
   return resolvePostAuthDestination({ locale, onboardingStatus })

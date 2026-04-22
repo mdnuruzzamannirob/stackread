@@ -11,7 +11,8 @@ import {
 import type { UserProfile } from '@/store/features/auth/types'
 
 type ApplySessionPayload = {
-  accessToken: string
+  accessToken?: string
+  token?: string
   refreshToken?: string
   user: UserProfile
 }
@@ -20,15 +21,21 @@ export function applyAuthenticatedSession(
   dispatch: AppDispatch,
   payload: ApplySessionPayload,
 ) {
+  const accessToken = payload.accessToken ?? payload.token
+
+  if (!accessToken) {
+    throw new Error('Missing access token.')
+  }
+
   persistSession({
-    accessToken: payload.accessToken,
+    accessToken,
     refreshToken: payload.refreshToken,
   })
   clearPersistedTempToken()
   dispatch(clearTempToken())
   dispatch(
     setAuthenticatedSession({
-      token: payload.accessToken,
+      token: accessToken,
       user: payload.user,
     }),
   )

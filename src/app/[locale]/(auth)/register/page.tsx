@@ -29,6 +29,17 @@ const RegisterPage = () => {
     watch,
   } = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      countryCode: 'BD',
+      agreeTerms: false,
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      address: '',
+      password: '',
+      confirmPassword: '',
+    },
   })
 
   const agreeTerms = watch('agreeTerms')
@@ -37,19 +48,19 @@ const RegisterPage = () => {
     try {
       const response = await register({
         firstName: data.firstName,
-        lastName: data.lastName,
+        lastName: data.lastName || undefined,
         email: data.email,
-        phone: data.phone || '',
-        address: data.address || '',
+        phone: data.phone,
+        address: data.address,
         password: data.password,
-        countryCode: 'BD', // TODO: Get from phone or location
+        countryCode: data.countryCode,
         agreeToTerms: data.agreeTerms,
       }).unwrap()
 
       if (response.data) {
         dispatch(setEmailInFlow(data.email))
         toast.success('Registration successful! Verify your email.')
-        router.push(`/${locale}/register/verify-email`)
+        router.push(`/${locale}/verify-email`)
       }
     } catch (error) {
       const errorMessage = getApiErrorMessage(
@@ -99,12 +110,32 @@ const RegisterPage = () => {
                     icon={<User size={17} />}
                     type="text"
                     label="Last Name"
-                    required
                     placeholder="Doe"
                     {...registerField('lastName')}
                     error={errors.lastName?.message}
                     disabled={isLoading}
                   />
+                </div>
+
+                <div className="mb-4">
+                  <label className="mb-1.5 block text-sm font-medium text-gray-600">
+                    Country Code<span className="ml-0.5 text-red-500">*</span>
+                  </label>
+                  <select
+                    {...registerField('countryCode')}
+                    disabled={isLoading}
+                    className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none transition focus:border-teal-600 focus:bg-white focus:ring-[2.5px] focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  >
+                    <option value="BD">Bangladesh (BD)</option>
+                    <option value="US">United States (US)</option>
+                    <option value="GB">United Kingdom (GB)</option>
+                    <option value="IN">India (IN)</option>
+                  </select>
+                  {errors.countryCode && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.countryCode.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* Email */}

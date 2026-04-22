@@ -2,7 +2,6 @@ import type { ApiEnvelope } from '@/lib/api/types'
 import { baseApi } from '@/store/baseApi'
 import type {
   LoginHistoryPayload,
-  LoginPayload,
   RegisterResponse,
   TwoFactorBackupCodesPayload,
   TwoFactorSetupPayload,
@@ -67,6 +66,17 @@ type TwoFactorChallengeBody = {
 }
 
 type RefreshResponse = { accessToken: string }
+type LoginResponse =
+  | {
+      requiresTwoFactor: false
+      token: string
+      user: UserProfile
+    }
+  | {
+      requiresTwoFactor: true
+      tempToken: string
+      user: UserProfile
+    }
 
 type SuccessResponse = { success: true }
 type SentResponse = { sent: true }
@@ -81,7 +91,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Auth'],
     }),
-    login: builder.mutation<ApiEnvelope<LoginPayload>, LoginBody>({
+    login: builder.mutation<ApiEnvelope<LoginResponse>, LoginBody>({
       query: (body) => ({
         url: '/auth/login',
         method: 'POST',

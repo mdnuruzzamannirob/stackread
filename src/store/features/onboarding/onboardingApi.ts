@@ -32,6 +32,16 @@ export type CompleteOnboardingResponse = {
   selectedPlanCode: string
 }
 
+export type SaveOnboardingInterestsResponse = {
+  success: true
+  interests: string[]
+}
+
+export type SaveOnboardingLanguageResponse = {
+  success: true
+  language: string
+}
+
 export type ConfirmOnboardingPaymentBody = {
   sessionId: string
   reference?: string
@@ -58,7 +68,7 @@ export const onboardingApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getOnboardingPlans: builder.query<ApiEnvelope<OnboardingPlan[]>, void>({
       query: () => ({
-        url: '/onboarding/plans',
+        url: '/plans',
         method: 'GET',
       }),
       providesTags: ['Onboarding'],
@@ -80,6 +90,28 @@ export const onboardingApi = baseApi.injectEndpoints({
       query: (body) => ({
         url: '/onboarding/select',
         method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Onboarding'],
+    }),
+    saveOnboardingInterests: builder.mutation<
+      ApiEnvelope<SaveOnboardingInterestsResponse>,
+      { interests: string[] }
+    >({
+      query: (body) => ({
+        url: '/onboarding/interests',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Onboarding'],
+    }),
+    saveOnboardingLanguage: builder.mutation<
+      ApiEnvelope<SaveOnboardingLanguageResponse>,
+      { language: string }
+    >({
+      query: (body) => ({
+        url: '/onboarding/language',
+        method: 'PATCH',
         body,
       }),
       invalidatesTags: ['Onboarding'],
@@ -114,6 +146,8 @@ export const {
   useGetOnboardingStatusQuery,
   useLazyGetOnboardingStatusQuery,
   useSelectOnboardingPlanMutation,
+  useSaveOnboardingInterestsMutation,
+  useSaveOnboardingLanguageMutation,
   useCompleteOnboardingMutation,
   useConfirmOnboardingPaymentMutation,
 } = onboardingApi

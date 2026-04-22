@@ -23,7 +23,7 @@ export function LogoutButton() {
     } finally {
       clearClientAuthSession(dispatch)
       toast.success('Logged out')
-      router.replace(`/${locale}/auth/login`)
+      router.replace(`/${locale}/login`)
     }
   }
 

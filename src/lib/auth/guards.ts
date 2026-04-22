@@ -107,10 +107,10 @@ export function useRequireTempToken(locale: string) {
         dispatch(setTempToken(persisted))
         return
       }
-
+      router.replace(`/${locale}/login`)
       clearPersistedTempToken()
       dispatch(clearTempToken())
-      router.replace(`/${locale}/auth/login`)
+      router.replace(`/${locale}/login`)
     }
   }, [dispatch, isHydrated, locale, router, tempToken])
 }

@@ -9,14 +9,14 @@ export function AuthLinks({ locale }: { locale: string }) {
   return (
     <div className="hidden items-center gap-2 md:flex">
       <Link
-        href={`/${locale}/auth/login`}
+        href={`/${locale}/login`}
         className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
       >
         Login
       </Link>
 
       <Link
-        href={`/${locale}/auth/register`}
+        href={`/${locale}/register`}
         className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
       >
         Register

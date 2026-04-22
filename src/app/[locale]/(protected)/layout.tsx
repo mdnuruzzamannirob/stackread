@@ -27,17 +27,17 @@ export default async function ProtectedLayout({
   const token = await getServerAccessToken()
 
   if (!token) {
-    redirect(`/${locale}/auth/login`)
+    redirect(`/${locale}/login`)
   }
 
   const onboarding = await getOnboardingStatus(token)
 
   if (!onboarding) {
-    redirect(`/${locale}/auth/login`)
+    redirect(`/${locale}/login`)
   }
 
   if (onboarding?.status === 'pending') {
-    redirect(`/${locale}/onboarding/interests`)
+    redirect(`/${locale}/onboarding/welcome`)
   }
 
   if (onboarding?.status === 'selected') {

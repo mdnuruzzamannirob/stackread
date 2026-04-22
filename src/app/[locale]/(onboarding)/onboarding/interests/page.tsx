@@ -13,9 +13,12 @@ import {
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
+import { getApiErrorMessage } from '@/lib/api/error-message'
 import { cn } from '@/lib/utils'
+import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 
 const storageKey = 'stackread:onboarding-interests'
 
@@ -34,6 +37,8 @@ export default function OnboardingInterestsPage() {
   const params = useParams<{ locale: string }>()
   const locale = params.locale ?? 'en'
   const router = useRouter()
+  const [saveInterests, { isLoading }] =
+    onboardingApi.useSaveOnboardingInterestsMutation()
   const [selectedInterests, setSelectedInterests] = useState<string[]>(() => {
     if (typeof window === 'undefined') {
       return []
@@ -66,8 +71,23 @@ export default function OnboardingInterestsPage() {
   }
 
   const persistAndContinue = () => {
-    window.localStorage.setItem(storageKey, JSON.stringify(selectedInterests))
-    router.push(`/${locale}/onboarding/language`)
+    void (async () => {
+      try {
+        await saveInterests({ interests: selectedInterests }).unwrap()
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify(selectedInterests),
+        )
+        router.push(`/${locale}/onboarding/language`)
+      } catch (error) {
+        toast.error(
+          getApiErrorMessage(
+            error,
+            'Unable to save interests. Please try again.',
+          ),
+        )
+      }
+    })()
   }
   const persistAndBack = () => {
     window.localStorage.setItem(storageKey, JSON.stringify(selectedInterests))
@@ -140,10 +160,11 @@ export default function OnboardingInterestsPage() {
 
         <button
           type="button"
+          disabled={selectedInterests.length === 0 || isLoading}
           className="rounded-lg bg-teal-600 font-medium px-6 py-2.5 text-white transition-all duration-150 hover:bg-teal-700"
           onClick={persistAndContinue}
         >
-          Continue
+          {isLoading ? 'Saving...' : 'Continue'}
         </button>
       </div>
     </OnboardingShell>

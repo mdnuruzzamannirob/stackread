@@ -89,7 +89,7 @@ export function DashboardUserMenu({ locale }: DashboardUserMenuProps) {
       toast.error(getApiErrorMessage(error, t('logoutFailed')))
     } finally {
       clearClientAuthSession(dispatch)
-      router.replace(`/${locale}/auth/login`)
+      router.replace(`/${locale}/login`)
     }
   }
 

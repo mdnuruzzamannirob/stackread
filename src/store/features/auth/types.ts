@@ -53,21 +53,20 @@ export type RegisterResponse = {
 
 export type LoginSuccessPayload = {
   requiresTwoFactor: false
-  accessToken: string
-  refreshToken: string
+  token: string
   user: UserProfile
 }
 
 export type LoginTwoFactorPayload = {
   requiresTwoFactor: true
   tempToken: string
+  user: UserProfile
 }
 
 export type LoginPayload = LoginSuccessPayload | LoginTwoFactorPayload
 
 export type UserSessionPayload = {
-  accessToken: string
-  refreshToken?: string
+  token: string
   user: UserProfile
 }
 

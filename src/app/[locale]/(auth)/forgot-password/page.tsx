@@ -38,7 +38,7 @@ const ForgotPasswordPage = () => {
       await forgotPassword({ email: data.email }).unwrap()
       dispatch(setEmailInFlow(data.email))
       toast.success('Reset code sent to your email')
-      router.push(`/${locale}/reset-password`)
+      router.push(`/${locale}/verify-email`)
     } catch (error) {
       const errorMessage = getApiErrorMessage(
         error,
@@ -65,7 +65,7 @@ const ForgotPasswordPage = () => {
                   Forgot Password
                 </h1>
                 <p className="text-slate-500">
-                  Enter your email address and we'll send you a code to reset
+                  Enter your email address and we&apos;ll send you a code to reset
                   your password.
                 </p>
               </div>

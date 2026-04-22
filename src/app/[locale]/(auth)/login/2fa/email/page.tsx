@@ -3,12 +3,11 @@
 import AuthShell from '@/components/AuthShell'
 import OtpInputField from '@/components/OtpInputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
-import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
+import { applyAuthenticatedSession } from '@/lib/auth/client-session'
 import type { TwoFactorChallengeSchema } from '@/lib/validations/auth'
 import { twoFactorChallengeSchema } from '@/lib/validations/auth'
 import type { RootState } from '@/store'
 import { authApi } from '@/store/features/auth/authApi'
-import { setAuthenticatedSession } from '@/store/features/auth/authSlice'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -80,21 +79,13 @@ const TwoFactorAuthenticationEmail = () => {
       }
 
       // Successful 2FA
-      dispatch(
-        setAuthenticatedSession({
-          token: response.data.accessToken,
-          user: response.data.user,
-        }),
-      )
-
-      // Determine next destination
-      const destination = await resolveAuthenticatedDestination({
-        accessToken: response.data.accessToken,
-        locale,
+      applyAuthenticatedSession(dispatch, {
+        token: response.data.token,
+        user: response.data.user,
       })
 
       toast.success('Verification successful')
-      router.push(destination)
+      router.push(`/${locale}/dashboard`)
     } catch (error) {
       const errorMessage = getApiErrorMessage(
         error,
@@ -176,7 +167,7 @@ const TwoFactorAuthenticationEmail = () => {
                 <p className="mt-4 text-center text-sm text-gray-500">
                   Didn&apos;t receive the email?{' '}
                   <Link
-                    href={`/${locale}/login/2fa`}
+                    href={`/${locale}/2fa`}
                     className="font-medium text-teal-700 hover:underline"
                   >
                     Try another method

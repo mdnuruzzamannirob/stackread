@@ -48,8 +48,9 @@ const ResetPasswordPage = () => {
   const emailInFlow = useAppSelector((state) => state.auth.emailInFlow)
   const resetToken = useAppSelector((state) => state.auth.resetToken)
 
-  const [step, setStep] = useState<'otp' | 'password'>('otp')
-  const [secondsLeft, setSecondsLeft] = useState(60)
+  const [step, setStep] = useState<'otp' | 'password'>(
+    resetToken ? 'password' : 'otp',
+  )
 
   const [verifyResetOtp, { isLoading: isVerifying }] =
     useVerifyResetOtpMutation()
@@ -78,6 +79,7 @@ const ResetPasswordPage = () => {
       if (response.data) {
         dispatch(setResetToken(response.data.resetToken))
         setStep('password')
+        router.push(`/${locale}/reset-password`)
         toast.success('OTP verified! Please enter your new password.')
       }
     } catch (error) {
@@ -168,7 +170,7 @@ const ResetPasswordPage = () => {
                     </button>
 
                     <p className="mt-4 text-center text-sm text-gray-500">
-                      Didn't receive code?{' '}
+                      Didn&apos;t receive code?{' '}
                       <button
                         type="button"
                         className="font-medium text-teal-700 hover:underline"

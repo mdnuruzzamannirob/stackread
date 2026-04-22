@@ -87,7 +87,7 @@ export const baseQueryWithReauth: BaseQueryFn<
       const locale =
         window.location.pathname.split('/').filter(Boolean)[0] ||
         env.defaultLocale
-      window.location.replace(`/${locale}/auth/login`)
+      window.location.replace(`/${locale}/login`)
     }
 
     return result
@@ -106,7 +106,7 @@ export const baseQueryWithReauth: BaseQueryFn<
       const locale =
         window.location.pathname.split('/').filter(Boolean)[0] ||
         env.defaultLocale
-      window.location.replace(`/${locale}/auth/login`)
+      window.location.replace(`/${locale}/login`)
     }
 
     return result

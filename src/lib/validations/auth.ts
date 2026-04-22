@@ -3,7 +3,8 @@ import { z } from 'zod'
 // Login validation
 export const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address').trim(),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  rememberMe: z.boolean().optional(),
 })
 
 export type LoginSchema = z.infer<typeof loginSchema>
@@ -37,15 +38,25 @@ export type RecoveryCodeChallengeSchema = z.infer<
 // Register validation
 export const registerSchema = z
   .object({
-    firstName: z.string().min(1, 'First name is required').trim(),
-    lastName: z.string().min(1, 'Last name is required').trim(),
+    firstName: z
+      .string()
+      .min(2, 'First name must be at least 2 characters')
+      .trim(),
+    lastName: z.string().trim().optional().or(z.literal('')),
     email: z.string().email('Please enter a valid email address').trim(),
-    phone: z.string().optional().default(''),
-    address: z.string().optional().default(''),
+    phone: z.string().min(6, 'Phone number is required').trim(),
+    address: z.string().min(2, 'Address is required').trim(),
+    countryCode: z.string().min(2, 'Country code is required').max(3),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
-      .max(72, 'Password is too long'),
+      .max(72, 'Password is too long')
+      .regex(/[A-Z]/, 'Password must include at least one uppercase letter')
+      .regex(/[0-9]/, 'Password must include at least one number')
+      .regex(
+        /[^A-Za-z0-9]/,
+        'Password must include at least one special character',
+      ),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     agreeTerms: z.boolean().refine((val) => val === true, {
       message: 'You must agree to the terms and conditions',

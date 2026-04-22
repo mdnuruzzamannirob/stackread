@@ -2,8 +2,8 @@
 
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
 import { cn } from '@/lib/utils'
+import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 import { useGetPlansQuery } from '@/store/features/subscriptions/subscriptionsApi'
-import { useAppSelector } from '@/store/hooks'
 import { Loader2, Star } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
@@ -127,10 +127,7 @@ export default function OnboardingPlanSelectionPage() {
   const router = useRouter()
   const [billing, setBilling] = useState<BillingCycle>('monthly')
   const [isProcessing, setIsProcessing] = useState(false)
-
-  // Get user from Redux store
-  const user = useAppSelector((state) => state.auth.user)
-  const userId = user?.id
+  const [selectPlan] = onboardingApi.useSelectOnboardingPlanMutation()
 
   // Fetch plans from backend
   const { data: plansResponse, isLoading: isPlansLoading } = useGetPlansQuery()
@@ -176,16 +173,12 @@ export default function OnboardingPlanSelectionPage() {
   }
 
   const handlePlanClick = async (plan: UiPlan) => {
-    if (!userId) {
-      console.error('User ID not available')
-      return
-    }
-
     setIsProcessing(true)
 
     try {
+      await selectPlan({ planCode: plan.code }).unwrap()
+
       if (plan.free) {
-        // For free plans, navigate to payment success
         const searchParams = new URLSearchParams({
           plan_id: plan.code,
           plan_name: plan.name,
@@ -199,7 +192,6 @@ export default function OnboardingPlanSelectionPage() {
           `/${locale}/onboarding/payment/success?${searchParams.toString()}`,
         )
       } else {
-        // For paid plans, navigate to payment page where payment will be initiated
         const price = getPrice(plan)
         const searchParams = new URLSearchParams({
           plan_id: plan.code,
