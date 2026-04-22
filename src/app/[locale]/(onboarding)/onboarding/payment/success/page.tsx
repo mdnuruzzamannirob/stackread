@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { onboardingApi } from '@/store/features/onboarding/onboardingApi'
 import { ArrowRight, CheckCircle2, LayoutGrid, RefreshCw } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 // ------- types -------
@@ -30,6 +30,7 @@ export default function OnboardingPaymentSuccessPage() {
     useState<VerificationState>('loading')
   const [loadingMsg, setLoadingMsg] = useState('Verifying your payment')
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
+  const hasRedirectedRef = useRef(false)
 
   const [confirmPayment] = onboardingApi.useConfirmOnboardingPaymentMutation()
 
@@ -118,7 +119,6 @@ export default function OnboardingPaymentSuccessPage() {
       setCountdown((c) => {
         if (c <= 1) {
           window.clearInterval(timer)
-          router.push(`/${locale}/onboarding/complete`)
           return 0
         }
         return c - 1
@@ -127,7 +127,23 @@ export default function OnboardingPaymentSuccessPage() {
     return () => window.clearInterval(timer)
   }, [locale, router, verificationState])
 
-  const handleContinue = () => router.push(`/${locale}/onboarding/complete`)
+  useEffect(() => {
+    if (
+      verificationState !== 'confirmed' ||
+      countdown > 0 ||
+      hasRedirectedRef.current
+    ) {
+      return
+    }
+
+    hasRedirectedRef.current = true
+    router.push(`/${locale}/onboarding/complete`)
+  }, [countdown, locale, router, verificationState])
+
+  const handleContinue = () => {
+    hasRedirectedRef.current = true
+    router.push(`/${locale}/onboarding/complete`)
+  }
 
   const handleRetryVerification = () => {
     setVerificationState('loading')
