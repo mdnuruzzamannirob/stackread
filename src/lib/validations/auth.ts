@@ -44,8 +44,18 @@ export const registerSchema = z
       .trim(),
     lastName: z.string().trim().optional().or(z.literal('')),
     email: z.string().email('Please enter a valid email address').trim(),
-    phone: z.string().min(6, 'Phone number is required').trim(),
-    address: z.string().min(2, 'Address is required').trim(),
+    phone: z
+      .string()
+      .min(6, 'Phone number is required')
+      .trim()
+      .optional()
+      .or(z.literal(null)),
+    address: z
+      .string()
+      .min(2, 'Address is required')
+      .trim()
+      .optional()
+      .or(z.literal(null)),
     countryCode: z.string().min(2, 'Country code is required').max(3),
     password: z
       .string()

@@ -4,6 +4,7 @@ import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { applyAuthenticatedSession } from '@/lib/auth/client-session'
+import { useRequireTempToken } from '@/lib/auth/guards'
 import type { RecoveryCodeChallengeSchema } from '@/lib/validations/auth'
 import { recoveryCodeChallengeSchema } from '@/lib/validations/auth'
 import type { RootState } from '@/store'
@@ -21,6 +22,7 @@ const TwoFactorAuthenticationRecovery = () => {
   const params = useParams()
   const locale = params.locale as string
   const dispatch = useDispatch()
+  useRequireTempToken(locale)
 
   // Get tempToken from Redux auth state
   const { tempToken } = useSelector((state: RootState) => state.auth)
@@ -36,13 +38,12 @@ const TwoFactorAuthenticationRecovery = () => {
     resolver: zodResolver(recoveryCodeChallengeSchema),
   })
 
-  // Redirect if no tempToken
-  if (!tempToken) {
-    router.push(`/${locale}/login`)
-    return null
-  }
-
   const onSubmit = async (data: RecoveryCodeChallengeSchema) => {
+    if (!tempToken) {
+      toast.error('Unable to continue 2FA flow. Please sign in again.')
+      return
+    }
+
     try {
       const response = await challengeTwoFactor({
         tempToken,

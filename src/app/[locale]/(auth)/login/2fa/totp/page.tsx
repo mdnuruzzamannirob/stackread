@@ -4,15 +4,12 @@ import AuthShell from '@/components/AuthShell'
 import OtpInputField from '@/components/OtpInputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { applyAuthenticatedSession } from '@/lib/auth/client-session'
-import type { TwoFactorChallengeSchema } from '@/lib/validations/auth'
-import { twoFactorChallengeSchema } from '@/lib/validations/auth'
+import { useRequireTempToken } from '@/lib/auth/guards'
 import type { RootState } from '@/store'
 import { authApi } from '@/store/features/auth/authApi'
-import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
 
@@ -21,6 +18,7 @@ const TwoFactorAuthenticationTOTP = () => {
   const params = useParams()
   const locale = params.locale as string
   const dispatch = useDispatch()
+  useRequireTempToken(locale)
 
   // Get tempToken from Redux auth state
   const { tempToken } = useSelector((state: RootState) => state.auth)
@@ -28,24 +26,16 @@ const TwoFactorAuthenticationTOTP = () => {
   const [challengeTwoFactor, { isLoading }] =
     authApi.useChallengeTwoFactorMutation()
 
-  const {
-    handleSubmit,
-    formState: { errors },
-  } = useForm<TwoFactorChallengeSchema>({
-    resolver: zodResolver(twoFactorChallengeSchema),
-  })
-
   const [otp, setOtp] = useState('')
-
-  // Redirect if no tempToken
-  if (!tempToken) {
-    router.push(`/${locale}/login`)
-    return null
-  }
 
   const onSubmit = async () => {
     if (!otp || otp.length !== 6) {
       toast.error('Please enter a valid 6-digit code')
+      return
+    }
+
+    if (!tempToken) {
+      toast.error('Unable to continue 2FA flow. Please sign in again.')
       return
     }
 
@@ -100,14 +90,14 @@ const TwoFactorAuthenticationTOTP = () => {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)}>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void onSubmit()
+                }}
+              >
                 <div className="mb-5">
                   <OtpInputField length={6} onChange={setOtp} value={otp} />
-                  {errors.otp && (
-                    <p className="mt-2 text-sm text-red-500">
-                      {errors.otp.message}
-                    </p>
-                  )}
                 </div>
 
                 <button

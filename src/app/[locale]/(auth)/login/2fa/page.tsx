@@ -1,13 +1,101 @@
 'use client'
 
 import AuthShell from '@/components/AuthShell'
+import { getApiErrorMessage } from '@/lib/api/error-message'
+import { useRequireTempToken } from '@/lib/auth/guards'
+import {
+  extractEmailFromTempToken,
+  getTwoFactorMethodPreference,
+  type TwoFactorMethodPreference,
+} from '@/lib/auth/two-factor-preferences'
 import { Circle, CircleDot, Lock, Mail, Shield } from 'lucide-react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+
+import { authApi } from '@/store/features/auth/authApi'
+import { setSelectedTwoFactorMethod } from '@/store/features/auth/authSlice'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
 const TwoFactorAuthentication = () => {
+  const router = useRouter()
   const params = useParams()
   const locale = params.locale as string
+  const dispatch = useAppDispatch()
+  const { tempToken, emailInFlow } = useAppSelector((state) => state.auth)
+
+  const [sendTwoFactorEmailOtp, { isLoading: isSendingEmailOtp }] =
+    authApi.useSendTwoFactorEmailOtpMutation()
+  const [methodPreference, setMethodPreference] = useState<
+    TwoFactorMethodPreference | null | undefined
+  >(undefined)
+
+  useRequireTempToken(locale)
+
+  useEffect(() => {
+    const resolvedEmail =
+      emailInFlow ?? (tempToken ? extractEmailFromTempToken(tempToken) : null)
+
+    if (!resolvedEmail) {
+      return
+    }
+
+    setMethodPreference(getTwoFactorMethodPreference(resolvedEmail))
+  }, [emailInFlow, tempToken])
+
+  const visibleMethods = useMemo<
+    Array<'totp' | 'email' | 'backup-code'>
+  >(() => {
+    if (methodPreference === undefined) {
+      return []
+    }
+
+    if (methodPreference === 'email') {
+      return ['email', 'backup-code']
+    }
+
+    if (methodPreference === 'totp') {
+      return ['totp', 'backup-code']
+    }
+
+    return ['totp', 'email', 'backup-code']
+  }, [methodPreference])
+
+  const handleEmailMethod = async () => {
+    if (!tempToken) {
+      toast.error('Unable to continue 2FA flow. Please sign in again.')
+      return
+    }
+
+    dispatch(setSelectedTwoFactorMethod('email'))
+
+    try {
+      await sendTwoFactorEmailOtp({ tempToken }).unwrap()
+      toast.success('Verification code sent to your email.')
+      router.push(`/${locale}/login/2fa/email`)
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          'Failed to send the email verification code.',
+        ),
+      )
+    }
+  }
+
+  const handleTotpMethod = () => {
+    dispatch(setSelectedTwoFactorMethod('totp'))
+    router.push(`/${locale}/login/2fa/totp`)
+  }
+
+  const handleBackupCodeMethod = () => {
+    dispatch(setSelectedTwoFactorMethod('backup-code'))
+    router.push(`/${locale}/login/2fa/recovery`)
+  }
+
+  const isMethodsLoading = methodPreference === undefined
+
   return (
     <main className="min-h-dvh flex flex-col">
       <div className="flex flex-1 min-h-dvh">
@@ -31,104 +119,119 @@ const TwoFactorAuthentication = () => {
               </div>
 
               <div className="space-y-3">
-                <Link
-                  href={`/${locale}/login/2fa/totp`}
-                  className="relative group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
-                >
-                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
-                    <Shield
-                      size={20}
-                      className="group-hover:text-white duration-150 transition-colors"
-                    />
+                {isMethodsLoading ? (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                    Loading available verification methods...
                   </div>
+                ) : (
+                  <>
+                    {visibleMethods.includes('totp') && (
+                      <button
+                        type="button"
+                        onClick={handleTotpMethod}
+                        className="relative group flex w-full items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-left transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
+                      >
+                        <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
+                          <Shield
+                            size={20}
+                            className="group-hover:text-white duration-150 transition-colors"
+                          />
+                        </div>
 
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
-                      Authenticator App
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-gray-700">
-                      Generate codes via Google or Microsoft
-                    </p>
-                  </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                            Authenticator App
+                          </h3>
+                          <p className="text-sm text-gray-600 group-hover:text-gray-700">
+                            Generate codes via Google or Microsoft
+                          </p>
+                        </div>
 
-                  {/* Radio Indicator */}
-                  <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-                    <Circle
-                      size={18}
-                      className="text-gray-400 transition-all duration-150 group-hover:opacity-0"
-                    />
-                    <CircleDot
-                      size={18}
-                      className="absolute inset-0 text-teal-600 opacity-0 transition-all duration-150 group-hover:opacity-100"
-                    />
-                  </div>
-                </Link>
+                        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                          <Circle
+                            size={18}
+                            className="text-gray-400 transition-all duration-150 group-hover:opacity-0"
+                          />
+                          <CircleDot
+                            size={18}
+                            className="absolute inset-0 text-teal-600 opacity-0 transition-all duration-150 group-hover:opacity-100"
+                          />
+                        </div>
+                      </button>
+                    )}
 
-                <Link
-                  href={`/${locale}/login/2fa/email`}
-                  className="relative group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
-                >
-                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
-                    <Mail
-                      size={20}
-                      className="group-hover:text-white duration-150 transition-colors"
-                    />
-                  </div>
+                    {visibleMethods.includes('email') && (
+                      <button
+                        type="button"
+                        onClick={handleEmailMethod}
+                        disabled={isSendingEmailOtp}
+                        className="relative group flex w-full items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-left transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
+                          <Mail
+                            size={20}
+                            className="group-hover:text-white duration-150 transition-colors"
+                          />
+                        </div>
 
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
-                      Email OTP
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-gray-700">
-                      One-time code sent to your inbox
-                    </p>
-                  </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                            Email OTP
+                          </h3>
+                          <p className="text-sm text-gray-600 group-hover:text-gray-700">
+                            One-time code sent to your inbox
+                          </p>
+                        </div>
 
-                  {/* Radio Indicator */}
-                  <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-                    <Circle
-                      size={18}
-                      className="text-gray-400 transition-all duration-150 group-hover:opacity-0"
-                    />
-                    <CircleDot
-                      size={18}
-                      className="absolute inset-0 text-teal-600 opacity-0 transition-all duration-150 group-hover:opacity-100"
-                    />
-                  </div>
-                </Link>
+                        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                          <Circle
+                            size={18}
+                            className="text-gray-400 transition-all duration-150 group-hover:opacity-0"
+                          />
+                          <CircleDot
+                            size={18}
+                            className="absolute inset-0 text-teal-600 opacity-0 transition-all duration-150 group-hover:opacity-100"
+                          />
+                        </div>
+                      </button>
+                    )}
 
-                <Link
-                  href={`/${locale}/login/2fa/recovery`}
-                  className="relative group flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
-                >
-                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
-                    <Lock
-                      size={20}
-                      className="group-hover:text-white duration-150 transition-colors"
-                    />
-                  </div>
+                    {visibleMethods.includes('backup-code') && (
+                      <button
+                        type="button"
+                        onClick={handleBackupCodeMethod}
+                        className="relative group flex w-full items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-left transition-all duration-150 hover:border-teal-600 hover:bg-white hover:ring-[2.5px] hover:ring-teal-600/10 cursor-pointer"
+                      >
+                        <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 transition-colors duration-150 group-hover:bg-teal-600">
+                          <Lock
+                            size={20}
+                            className="group-hover:text-white duration-150 transition-colors"
+                          />
+                        </div>
 
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
-                      Backup Codes
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-gray-700">
-                      Use a pre-generated offline code
-                    </p>
-                  </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                            Backup Codes
+                          </h3>
+                          <p className="text-sm text-gray-600 group-hover:text-gray-700">
+                            Use a pre-generated offline code
+                          </p>
+                        </div>
 
-                  {/* Radio Indicator */}
-                  <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-                    <Circle
-                      size={18}
-                      className="text-gray-400 transition-all duration-150 group-hover:opacity-0"
-                    />
-                    <CircleDot
-                      size={18}
-                      className="absolute inset-0 text-teal-600 opacity-0 transition-all duration-150 group-hover:opacity-100"
-                    />
-                  </div>
-                </Link>
+                        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                          <Circle
+                            size={18}
+                            className="text-gray-400 transition-all duration-150 group-hover:opacity-0"
+                          />
+                          <CircleDot
+                            size={18}
+                            className="absolute inset-0 text-teal-600 opacity-0 transition-all duration-150 group-hover:opacity-100"
+                          />
+                        </div>
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
 
               <p className="mt-8 text-center text-sm text-gray-500">
