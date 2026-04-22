@@ -9,6 +9,24 @@ type MeResponse = {
   isEmailVerified?: boolean
 }
 
+function resolveOnboardingDestination({
+  locale,
+  onboardingStatus,
+}: {
+  locale: string
+  onboardingStatus: AuthState['onboardingStatus'] | null
+}) {
+  if (onboardingStatus === 'pending') {
+    return `/${locale}/onboarding/welcome`
+  }
+
+  if (onboardingStatus === 'selected') {
+    return `/${locale}/onboarding/plan`
+  }
+
+  return `/${locale}/dashboard`
+}
+
 export async function fetchOnboardingStatus(accessToken?: string | null) {
   const response = await fetch(`${env.apiBaseUrl}/onboarding/status`, {
     headers: {
@@ -58,11 +76,7 @@ export function resolvePostAuthDestination({
   locale: string
   onboardingStatus: AuthState['onboardingStatus'] | null
 }) {
-  if (onboardingStatus === 'pending' || onboardingStatus === 'selected') {
-    return `/${locale}/onboarding/welcome`
-  }
-
-  return `/${locale}/dashboard`
+  return resolveOnboardingDestination({ locale, onboardingStatus })
 }
 
 export async function resolveAuthenticatedDestination({
@@ -75,7 +89,7 @@ export async function resolveAuthenticatedDestination({
   const onboardingStatus = await fetchOnboardingStatus(accessToken)
 
   if (onboardingStatus === 'pending' || onboardingStatus === 'selected') {
-    return `/${locale}/onboarding/plan`
+    return resolveOnboardingDestination({ locale, onboardingStatus })
   }
 
   const me = await fetchMe(accessToken)
@@ -84,5 +98,5 @@ export async function resolveAuthenticatedDestination({
     return `/${locale}/register/verify-email`
   }
 
-  return resolvePostAuthDestination({ locale, onboardingStatus })
+  return resolveOnboardingDestination({ locale, onboardingStatus })
 }

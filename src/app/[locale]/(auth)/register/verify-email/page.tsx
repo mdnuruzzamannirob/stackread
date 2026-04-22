@@ -4,6 +4,7 @@ import AuthShell from '@/components/AuthShell'
 import OtpInputField from '@/components/OtpInputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { applyAuthenticatedSession } from '@/lib/auth/client-session'
+import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import {
   useResendVerificationMutation,
   useVerifyEmailMutation,
@@ -55,14 +56,24 @@ const RegisterVerifyEmailPage = () => {
 
     try {
       const response = await verifyEmail({ email: emailInFlow, otp }).unwrap()
+      const session = response.data
 
-      if (response.data) {
-        applyAuthenticatedSession(dispatch, response.data)
+      if (!session) {
+        toast.error('Unable to complete registration. Please try again.')
+        return
       }
+
+      applyAuthenticatedSession(dispatch, session)
 
       dispatch(clearAuthFlow())
       toast.success('Email verified successfully.')
-      router.push(`/${locale}/onboarding/welcome`)
+
+      const destination = await resolveAuthenticatedDestination({
+        accessToken: session.token,
+        locale,
+      })
+
+      router.push(destination)
     } catch (error) {
       toast.error(
         getApiErrorMessage(error, 'Verification failed. Please try again.'),

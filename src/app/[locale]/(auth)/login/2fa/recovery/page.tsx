@@ -5,6 +5,7 @@ import InputField from '@/components/InputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { applyAuthenticatedSession } from '@/lib/auth/client-session'
 import { useRequireTempToken } from '@/lib/auth/guards'
+import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import type { RecoveryCodeChallengeSchema } from '@/lib/validations/auth'
 import { recoveryCodeChallengeSchema } from '@/lib/validations/auth'
 import type { RootState } from '@/store'
@@ -63,7 +64,13 @@ const TwoFactorAuthenticationRecovery = () => {
       })
 
       toast.success('Verification successful')
-      router.push(`/${locale}/dashboard`)
+
+      const destination = await resolveAuthenticatedDestination({
+        accessToken: response.data.token,
+        locale,
+      })
+
+      router.push(destination)
     } catch (error) {
       const errorMessage = getApiErrorMessage(
         error,

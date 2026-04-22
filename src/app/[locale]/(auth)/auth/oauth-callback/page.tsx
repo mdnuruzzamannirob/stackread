@@ -76,27 +76,37 @@ const OAuthCallbackPage = () => {
           return
         }
 
+        const accessToken = refreshResponse.data?.accessToken
+        if (!accessToken) {
+          throw new Error('Unable to complete social sign-in.')
+        }
+
+        const destination = await resolveAuthenticatedDestination({
+          accessToken,
+          locale: callbackLocale,
+        })
+
+        if (destination.startsWith(`/${callbackLocale}/onboarding/`)) {
+          clearPersistedOAuthLocale()
+          router.replace(destination)
+          return
+        }
+
         const meResponse = await fetchMe().unwrap()
 
         if (!isMounted) {
           return
         }
 
-        const accessToken = refreshResponse.data?.accessToken
         const user = meResponse.data
 
-        if (!accessToken || !user) {
+        if (!user) {
           throw new Error('Unable to complete social sign-in.')
         }
 
         applyAuthenticatedSession(dispatch, {
           accessToken,
           user,
-        })
-
-        const destination = await resolveAuthenticatedDestination({
-          accessToken,
-          locale: callbackLocale,
         })
 
         if (!isMounted) {

@@ -4,6 +4,7 @@ import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { applyAuthenticatedSession } from '@/lib/auth/client-session'
+import { resolveAuthenticatedDestination } from '@/lib/auth/onboarding'
 import { redirectToOAuth } from '@/lib/auth/social-oauth'
 import { persistTempToken } from '@/lib/auth/temp-token'
 import type { LoginSchema } from '@/lib/validations/auth'
@@ -68,7 +69,13 @@ const LoginPage = () => {
         })
 
         toast.success('Logged in successfully')
-        router.push(`/${locale}/dashboard`)
+
+        const destination = await resolveAuthenticatedDestination({
+          accessToken: response.data.token,
+          locale,
+        })
+
+        router.push(destination)
       }
     } catch (error) {
       const errorMessage = getApiErrorMessage(

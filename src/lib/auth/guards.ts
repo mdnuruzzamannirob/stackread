@@ -95,6 +95,7 @@ export function useRequireTempToken(locale: string) {
   const dispatch = useAppDispatch()
   const isHydrated = useAppSelector((state) => state.auth.isHydrated)
   const token = useAppSelector((state) => state.auth.token)
+  const emailInFlow = useAppSelector((state) => state.auth.emailInFlow)
   const tempToken = useAppSelector((state) => state.auth.tempToken)
 
   useEffect(() => {
@@ -103,6 +104,10 @@ export function useRequireTempToken(locale: string) {
     }
 
     if (token) {
+      if (emailInFlow) {
+        return
+      }
+
       router.replace(`/${locale}/dashboard`)
       return
     }
@@ -119,5 +124,5 @@ export function useRequireTempToken(locale: string) {
       dispatch(clearTempToken())
       router.replace(`/${locale}/login`)
     }
-  }, [dispatch, isHydrated, locale, router, tempToken, token])
+  }, [dispatch, emailInFlow, isHydrated, locale, router, tempToken, token])
 }
