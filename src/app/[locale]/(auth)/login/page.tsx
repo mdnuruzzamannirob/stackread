@@ -4,6 +4,7 @@ import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
 import { getApiErrorMessage } from '@/lib/api/error-message'
 import { applyAuthenticatedSession } from '@/lib/auth/client-session'
+import { redirectToOAuth } from '@/lib/auth/social-oauth'
 import { persistTempToken } from '@/lib/auth/temp-token'
 import type { LoginSchema } from '@/lib/validations/auth'
 import { loginSchema } from '@/lib/validations/auth'
@@ -76,6 +77,10 @@ const LoginPage = () => {
       )
       toast.error(errorMessage)
     }
+  }
+
+  const startOAuthLogin = (provider: 'google' | 'facebook') => {
+    redirectToOAuth(provider, locale)
   }
 
   return (
@@ -176,6 +181,7 @@ const LoginPage = () => {
                 <div className="mb-6 grid grid-cols-2 gap-3">
                   <button
                     type="button"
+                    onClick={() => startOAuthLogin('google')}
                     className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 text-sm transition hover:bg-gray-100"
                   >
                     <svg
@@ -206,6 +212,7 @@ const LoginPage = () => {
 
                   <button
                     type="button"
+                    onClick={() => startOAuthLogin('facebook')}
                     className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 text-sm transition hover:bg-gray-100"
                   >
                     <svg

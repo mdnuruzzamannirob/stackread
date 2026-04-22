@@ -2,6 +2,7 @@
 
 import AuthShell from '@/components/AuthShell'
 import InputField from '@/components/InputField'
+import { redirectToOAuth } from '@/lib/auth/social-oauth'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Home, Lock, Mail, Phone, User } from 'lucide-react'
 import Link from 'next/link'
@@ -54,8 +55,8 @@ const RegisterPage = () => {
         firstName: data.firstName,
         lastName: data.lastName || undefined,
         email: data.email,
-        phone: data.phone,
-        address: data.address,
+        phone: data.phone ?? '',
+        address: data.address ?? '',
         password: data.password,
         countryCode: data.countryCode,
         agreeToTerms: data.agreeTerms,
@@ -73,6 +74,10 @@ const RegisterPage = () => {
       )
       toast.error(errorMessage)
     }
+  }
+
+  const startOAuthSignup = (provider: 'google' | 'facebook') => {
+    redirectToOAuth(provider, locale)
   }
 
   return (
@@ -283,6 +288,7 @@ const RegisterPage = () => {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <button
                     type="button"
+                    onClick={() => startOAuthSignup('google')}
                     className="flex items-center justify-center gap-2 h-11 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition text-sm"
                   >
                     {/* Google official SVG */}
@@ -314,6 +320,7 @@ const RegisterPage = () => {
 
                   <button
                     type="button"
+                    onClick={() => startOAuthSignup('facebook')}
                     className="flex items-center border border-gray-200 justify-center gap-2 h-11 rounded-lg bg-gray-50 hover:bg-gray-100 transition text-sm"
                   >
                     {/* Facebook official SVG */}
