@@ -178,8 +178,9 @@ export default function OnboardingPlanSelectionPage() {
     setIsProcessing(true)
 
     try {
+      const selectedPlanCode = plan.code.toUpperCase()
       const response = await selectPlan({
-        planCode: plan.code,
+        planCode: selectedPlanCode,
         locale,
       }).unwrap()
 
@@ -189,12 +190,17 @@ export default function OnboardingPlanSelectionPage() {
         throw new Error('Plan selection response is empty.')
       }
 
-      if (data.nextStep === 'onboarding_completed') {
+      const isCompletedStep =
+        data.nextStep === 'onboarding_completed' ||
+        data.status === 'completed' ||
+        plan.free
+
+      if (isCompletedStep) {
         router.push(`/${locale}/onboarding/complete`)
         return
       }
 
-      const checkoutUrl = data.checkout_url ?? data.url
+      const checkoutUrl = data.checkout_url ?? data.redirectUrl ?? data.url
 
       if (!checkoutUrl) {
         throw new Error('Checkout URL is missing in response.')
