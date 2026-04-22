@@ -105,6 +105,7 @@ const LoginPage = () => {
                   <InputField
                     icon={<Mail size={17} />}
                     type="email"
+                    required
                     label="Email Address"
                     placeholder="john@example.com"
                     {...register('email')}

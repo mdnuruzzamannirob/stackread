@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Home, Lock, Mail, Phone, User } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { getApiErrorMessage } from '@/lib/api/error-message'
@@ -26,7 +26,7 @@ const RegisterPage = () => {
     register: registerField,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
   } = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -42,7 +42,11 @@ const RegisterPage = () => {
     },
   })
 
-  const agreeTerms = watch('agreeTerms')
+  const agreeTerms = useWatch({
+    control,
+    name: 'agreeTerms',
+    defaultValue: false,
+  })
 
   const onSubmit = async (data: RegisterSchema) => {
     try {
@@ -110,6 +114,7 @@ const RegisterPage = () => {
                     icon={<User size={17} />}
                     type="text"
                     label="Last Name"
+                    required
                     placeholder="Doe"
                     {...registerField('lastName')}
                     error={errors.lastName?.message}
