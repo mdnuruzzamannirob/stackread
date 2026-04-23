@@ -8,7 +8,7 @@ const Logo = ({ className }: { className?: string }) => {
       href="/"
       className={cn('text-2xl flex items-center gap-1 font-medium', className)}
     >
-      <Image alt="StackRead Logo" src="/logo.png" width={32} height={32} />{' '}
+      <Image alt="StackRead Logo" src="/logo.png" width={28} height={28} />{' '}
       StackRead
     </Link>
   )

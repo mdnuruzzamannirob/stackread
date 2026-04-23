@@ -9,12 +9,12 @@ type SettingsShellProps = {
 
 const SettingsShell = ({ locale, children }: SettingsShellProps) => {
   return (
-    <div className=" w-full">
+    <div className="w-full">
       <header className="mb-6 space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-brand-700 sm:text-4xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-teal-600 sm:text-3xl">
           Account Settings
         </h1>
-        <p className="text-sm font-medium text-gray-500">
+        <p className="font-medium text-gray-500">
           Manage your editorial identity and digital curator preferences.
         </p>
       </header>

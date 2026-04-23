@@ -57,7 +57,7 @@ export function DashboardHeader({ locale }: DashboardHeaderProps) {
   }
 
   return (
-    <div className="fixed left-0 right-0 bg-brand-50 top-0 z-40 md:left-60">
+    <div className="fixed left-0 right-0 bg-white top-0 z-40 md:left-60">
       <div className="flex w-full items-center justify-between gap-4 px-4 py-4 md:px-6">
         <div className="flex items-start gap-3">
           <button

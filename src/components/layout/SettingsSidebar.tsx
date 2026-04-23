@@ -3,7 +3,6 @@
 import { useMeQuery } from '@/store/features/auth/authApi'
 import {
   AlertTriangle,
-  BadgeCheck,
   CreditCard,
   Mail,
   Shield,
@@ -43,7 +42,6 @@ const SettingsSidebar = ({ locale }: { locale: string }) => {
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Reader'
   const initials = resolveInitials(user?.firstName, user?.lastName, user?.email)
-  const badgeLabel = 'Standard'
 
   const settingsLinks = [
     {
@@ -102,27 +100,11 @@ const SettingsSidebar = ({ locale }: { locale: string }) => {
             <span className="truncate">{user?.email ?? 'No email added'}</span>
           </p>
         </div>
-
-        <div className="mt-3 flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-900">
-            <BadgeCheck className="size-3.5" />
-            {badgeLabel}
-          </span>
-        </div>
-
-        <div className="mt-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
-            Subscription
-          </p>
-          <p className="mt-1 text-sm font-semibold text-gray-800">
-            Free member
-          </p>
-        </div>
       </div>
 
       <div className="border-t border-gray-200" />
 
-      <nav className="p-2">
+      <nav className="p-3">
         {settingsLinks.map((item) => {
           const Icon = item.icon
           const itemPath = `/${locale}/${item.href}`
@@ -137,9 +119,9 @@ const SettingsSidebar = ({ locale }: { locale: string }) => {
                 isActive
                   ? item.isDanger
                     ? 'bg-red-50 text-red-600'
-                    : 'bg-gray-100 text-teal-600'
+                    : 'bg-teal-100 text-teal-600'
                   : item.isDanger
-                    ? 'text-red-600 hover:bg-red-50'
+                    ? 'text-red-500 hover:bg-red-50'
                     : 'text-gray-500 hover:bg-gray-100'
               }`}
             >

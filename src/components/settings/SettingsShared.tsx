@@ -222,11 +222,11 @@ export function SettingsPageHeader({
   description: string
 }) {
   return (
-    <header className="space-y-2">
-      <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+    <header className="space-y-1">
+      <h2 className="text-2xl font-semibold tracking-tight text-teal-600">
         {title}
       </h2>
-      <p className="max-w-3xl text-sm leading-6 text-gray-600">{description}</p>
+      <p className="max-w-2xl text-sm leading-6 text-gray-500">{description}</p>
     </header>
   )
 }
@@ -241,7 +241,7 @@ export function SettingsCard({
   return (
     <article
       className={cn(
-        'rounded-xl border border-gray-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6',
+        'rounded-xl border border-gray-200 bg-white p-5 sm:p-6',
         className,
       )}
     >

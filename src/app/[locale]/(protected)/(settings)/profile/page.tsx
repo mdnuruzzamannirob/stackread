@@ -20,6 +20,7 @@ import {
   SettingsCard,
   SettingsPageHeader,
 } from '@/components/settings/SettingsShared'
+import Image from 'next/image'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_UPLOAD_IMAGE_BYTES = 512 * 1024
@@ -82,7 +83,7 @@ export default function ProfilePage() {
       address: user.address ?? '',
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+
     setProfileState(nextState)
     setInitialProfileState(nextState)
   }, [meResponse?.data])
@@ -308,7 +309,7 @@ export default function ProfilePage() {
 
       <SettingsCard className="p-0">
         {isLoadingProfile ? (
-          <div className="space-y-4 p-6">
+          <div className="space-y-4">
             <div className="h-28 w-28 animate-pulse rounded-xl bg-gray-200" />
             <div className="h-11 animate-pulse rounded-md bg-gray-200" />
             <div className="h-11 animate-pulse rounded-md bg-gray-200" />
@@ -316,13 +317,15 @@ export default function ProfilePage() {
             <div className="h-11 animate-pulse rounded-md bg-gray-200" />
           </div>
         ) : (
-          <div className="grid gap-8 p-6 lg:grid-cols-[140px_minmax(0,1fr)]">
+          <div className="grid gap-8 lg:grid-cols-[140px_minmax(0,1fr)]">
             <div className="space-y-3">
               <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl bg-[#071b24] ring-1 ring-gray-200">
                 {profileState.profilePicture ? (
-                  <img
+                  <Image
                     src={profileState.profilePicture}
                     alt="Profile"
+                    width={140}
+                    height={140}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -520,9 +523,11 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-gray-200">
                 {photoPreview || profileState.profilePicture ? (
-                  <img
+                  <Image
                     src={photoPreview || profileState.profilePicture}
                     alt="Profile preview"
+                    width={56}
+                    height={56}
                     className="h-full w-full object-cover"
                   />
                 ) : (

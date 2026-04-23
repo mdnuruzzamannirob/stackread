@@ -13,13 +13,13 @@ export function DashboardShell({ locale, children }: DashboardShellProps) {
   const { isSidebarOpen, closeSidebar } = useSidebar()
 
   return (
-    <div className="min-h-dvh bg-brand-50 text-brand-900">
-      <aside className="fixed bg-brand-50 inset-y-0 left-0 z-30 hidden w-60 md:block">
+    <div className="min-h-dvh bg-white">
+      <aside className="fixed inset-y-0 left-0 bg-white z-30 hidden w-60 md:block">
         <DashboardSidebar locale={locale} />
       </aside>
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-brand-50 shadow-xl transition-transform duration-300 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-white shadow-xl transition-transform duration-300 md:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
