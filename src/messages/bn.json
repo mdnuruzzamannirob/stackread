@@ -59,27 +59,30 @@
                 "planned": "শীঘ্রই"
             },
             "sections": {
+                "main": "মূল",
+                "myLibrary": "আমার লাইব্রেরি",
+                "subscription": "সাবস্ক্রিপশন",
                 "discover": "ডিসকভার",
                 "account": "অ্যাকাউন্ট"
             },
             "items": {
-                "dashboard": "ড্যাশবোর্ড",
-                "search": "সার্চ",
+                "dashboard": "ড্যাশবোর্ড / হোম",
+                "search": "ব্রাউজ ও এক্সপ্লোর",
                 "library": "লাইব্রেরি",
                 "currentlyReading": "এখন পড়ছি",
                 "readingHistory": "পড়ার ইতিহাস",
-                "wishlist": "উইশলিস্ট",
-                "bookmarks": "বুকমার্কস",
+                "wishlist": "সংরক্ষিত",
+                "bookmarks": "বুকমার্কড",
                 "notifications": "নোটিফিকেশন",
                 "settings": "সেটিংস",
-                "profile": "প্রোফাইল পরিচিতি",
+                "profile": "আমার প্রোফাইল",
                 "security": "নিরাপত্তা",
-                "preferences": "পছন্দসমূহ",
-                "subscription": "সাবস্ক্রিপশন",
+                "preferences": "পছন্দ ও আগ্রহ",
+                "subscription": "আমার প্ল্যান",
                 "danger": "ডেঞ্জার জোন"
             },
             "upgrade": {
-                "title": "প্রিমিয়ামে আপগ্রেড করুন",
+                "title": "প্ল্যান আপগ্রেড করুন",
                 "description": "বাংলা ডিজিটাল আর্কাইভে সীমাহীন অ্যাক্সেস আনলক করুন।",
                 "action": "এখনই আপগ্রেড"
             }

@@ -59,27 +59,30 @@
                 "planned": "Soon"
             },
             "sections": {
+                "main": "Main",
+                "myLibrary": "My Library",
+                "subscription": "Subscription",
                 "discover": "Discover",
                 "account": "Account"
             },
             "items": {
-                "dashboard": "Dashboard",
-                "search": "Search",
+                "dashboard": "Dashboard / Home",
+                "search": "Browse & Explore",
                 "library": "Library",
                 "currentlyReading": "Currently reading",
                 "readingHistory": "Reading history",
-                "wishlist": "Wishlist",
-                "bookmarks": "Bookmarks",
+                "wishlist": "Saved",
+                "bookmarks": "Bookmarked",
                 "notifications": "Notifications",
                 "settings": "Settings",
-                "profile": "Profile identity",
+                "profile": "My Profile",
                 "security": "Security",
-                "preferences": "Preferences",
-                "subscription": "Subscription",
+                "preferences": "Preferences & Interests",
+                "subscription": "My Plan",
                 "danger": "Danger zone"
             },
             "upgrade": {
-                "title": "Upgrade to Premium",
+                "title": "Upgrade Plan",
                 "description": "Unlock unlimited access to the full Bengali digital archive.",
                 "action": "Upgrade now"
             }

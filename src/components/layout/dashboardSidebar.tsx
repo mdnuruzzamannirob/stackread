@@ -7,7 +7,7 @@ import {
   withLocalePath,
   type DashboardPageNode,
 } from '@/lib/dashboard/page-map'
-import { LogOut, Settings, X } from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -125,18 +125,11 @@ export function DashboardSidebar({ locale }: DashboardSidebarProps) {
 
         <div className="space-y-1.5 border-t border-border pt-4">
           <Link
-            href={`/${locale}/profile`}
-            onClick={closeSidebar}
-            className="flex items-center w-full gap-3 rounded-lg px-3 py-2.5 pr-3 text-sm font-medium text-gray-500 duration-150 transition hover:bg-teal-100 hover:text-teal-600"
-          >
-            <Settings className="size-4" /> <span>{t('items.settings')}</span>
-          </Link>
-          <Link
             href={`/${locale}/logout`}
             onClick={closeSidebar}
             className="flex items-center w-full gap-3 rounded-lg px-3 py-2.5 pr-3 text-sm font-medium text-gray-500 duration-150 transition hover:bg-red-100 hover:text-red-600"
           >
-            <LogOut className="size-4" /> <span>Logout</span>
+            <LogOut className="size-4" /> <span>{translate('common.logout')}</span>
           </Link>
         </div>
       </div>

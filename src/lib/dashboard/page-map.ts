@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
+  CircleDollarSign,
   BookMarked,
   BookOpen,
   Compass,
@@ -8,6 +9,9 @@ import {
   History,
   LayoutDashboard,
   Search,
+  Settings,
+  Shield,
+  User,
 } from 'lucide-react'
 
 export type DashboardPageAvailability = 'ready' | 'planned'
@@ -31,8 +35,8 @@ export type DashboardPageSection = {
 
 export const dashboardPageSections: DashboardPageSection[] = [
   {
-    id: 'discover',
-    labelKey: 'dashboard.sidebar.sections.discover',
+    id: 'main',
+    labelKey: 'dashboard.sidebar.sections.main',
     items: [
       {
         id: 'dashboard-home',
@@ -48,7 +52,7 @@ export const dashboardPageSections: DashboardPageSection[] = [
         ],
       },
       {
-        id: 'search',
+        id: 'browse-explore',
         labelKey: 'dashboard.sidebar.items.search',
         descriptionKey: 'dashboard.sidebar.descriptions.search',
         path: '/search',
@@ -62,6 +66,12 @@ export const dashboardPageSections: DashboardPageSection[] = [
           'POST /search/log-click',
         ],
       },
+    ],
+  },
+  {
+    id: 'my-library',
+    labelKey: 'dashboard.sidebar.sections.myLibrary',
+    items: [
       {
         id: 'library',
         labelKey: 'dashboard.sidebar.items.library',
@@ -85,15 +95,7 @@ export const dashboardPageSections: DashboardPageSection[] = [
         backendRoutes: ['GET /reading/currently-reading'],
       },
       {
-        id: 'reading-history',
-        labelKey: 'dashboard.sidebar.items.readingHistory',
-        path: '/reading/history',
-        icon: History,
-        availability: 'ready',
-        backendRoutes: ['GET /reading/history'],
-      },
-      {
-        id: 'wishlist',
+        id: 'saved',
         labelKey: 'dashboard.sidebar.items.wishlist',
         path: '/wishlist',
         icon: Heart,
@@ -117,12 +119,70 @@ export const dashboardPageSections: DashboardPageSection[] = [
           'DELETE /books/:bookId/bookmarks/:id',
         ],
       },
+      {
+        id: 'reading-history',
+        labelKey: 'dashboard.sidebar.items.readingHistory',
+        path: '/reading/history',
+        icon: History,
+        availability: 'ready',
+        backendRoutes: ['GET /reading/history'],
+      },
+    ],
+  },
+  {
+    id: 'subscription',
+    labelKey: 'dashboard.sidebar.sections.subscription',
+    items: [
+      {
+        id: 'my-plan',
+        labelKey: 'dashboard.sidebar.items.subscription',
+        path: '/subscription',
+        icon: CircleDollarSign,
+        availability: 'ready',
+        backendRoutes: [
+          'GET /subscriptions/my',
+          'GET /subscriptions/my/payments',
+          'GET /subscriptions/my/payment-method',
+        ],
+      },
     ],
   },
   {
     id: 'account',
     labelKey: 'dashboard.sidebar.sections.account',
     items: [
+      {
+        id: 'profile',
+        labelKey: 'dashboard.sidebar.items.profile',
+        path: '/profile',
+        icon: User,
+        availability: 'ready',
+        backendRoutes: [
+          'GET /auth/me',
+          'PATCH /auth/me',
+          'PATCH /auth/me/profile-picture',
+        ],
+      },
+      {
+        id: 'preferences',
+        labelKey: 'dashboard.sidebar.items.preferences',
+        path: '/preferences',
+        icon: Settings,
+        availability: 'ready',
+        backendRoutes: [
+          'GET /auth/me',
+          'PATCH /auth/me',
+          'PATCH /auth/me/notification-preferences',
+        ],
+      },
+      {
+        id: 'security',
+        labelKey: 'dashboard.sidebar.items.security',
+        path: '/security',
+        icon: Shield,
+        availability: 'ready',
+        backendRoutes: ['GET /auth/me', 'PATCH /auth/me'],
+      },
       {
         id: 'notifications',
         labelKey: 'dashboard.sidebar.items.notifications',
