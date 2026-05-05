@@ -1,8 +1,0 @@
-onlyBuiltDependencies:
-  - '@firebase/util'
-  - '@parcel/watcher'
-  - '@swc/core'
-  - msw
-  - protobufjs
-  - sharp
-  - unrs-resolver
