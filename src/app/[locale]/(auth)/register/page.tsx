@@ -217,12 +217,13 @@ const RegisterPage = () => {
                 </div>
 
                 {/* Terms Checkbox */}
-                <div
-                  className="group flex items-start gap-3 mb-5 cursor-pointer select-none w-fit"
-                  onClick={() => {
-                    // This will be handled by the form, just styling
-                  }}
-                >
+                <label className="group flex items-start gap-3 mb-5 cursor-pointer select-none w-fit">
+                  <input
+                    type="checkbox"
+                    hidden
+                    {...registerField('agreeTerms')}
+                  />
+
                   <div
                     className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all duration-150 ${
                       agreeTerms
@@ -235,12 +236,7 @@ const RegisterPage = () => {
                     )}
                   </div>
 
-                  <label className="text-sm text-gray-500 leading-relaxed cursor-pointer flex-1">
-                    <input
-                      type="checkbox"
-                      hidden
-                      {...registerField('agreeTerms')}
-                    />
+                  <span className="text-sm text-gray-500 leading-relaxed flex-1">
                     I agree to the{' '}
                     <a
                       href="#"
@@ -258,8 +254,8 @@ const RegisterPage = () => {
                       Privacy Policy
                     </a>
                     .
-                  </label>
-                </div>
+                  </span>
+                </label>
                 {errors.agreeTerms && (
                   <p className="text-sm text-red-600 mb-4">
                     {errors.agreeTerms.message}
